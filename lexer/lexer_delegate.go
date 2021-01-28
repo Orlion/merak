@@ -1,17 +1,17 @@
 package lexer
 
-type LexerDelegate struct {
+type LexerDelegator struct {
 	lexer   Lexer
 	current Token
 }
 
-func NewLexerDelegate(lexer Lexer) *LexerDelegate {
-	return &LexerDelegate{
+func NewLexerDelegator(lexer Lexer) *LexerDelegator {
+	return &LexerDelegator{
 		lexer: lexer,
 	}
 }
 
-func (ld *LexerDelegate) Next() (token Token, err error) {
+func (ld *LexerDelegator) Next() (token Token, err error) {
 	token, err = ld.lexer.Next()
 	if err == nil {
 		ld.current = token
@@ -19,10 +19,6 @@ func (ld *LexerDelegate) Next() (token Token, err error) {
 	return
 }
 
-func (ld *LexerDelegate) Current() Token {
-	if ld.current == nil {
-		panic("no current token")
-	}
-
+func (ld *LexerDelegator) Current() Token {
 	return ld.current
 }

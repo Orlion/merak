@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Orlion/merak/ast"
 	"github.com/Orlion/merak/lexer"
 	"github.com/Orlion/merak/lr"
+	"github.com/Orlion/merak/production"
 	"github.com/Orlion/merak/symbol"
 )
 
@@ -15,128 +15,110 @@ var (
 )
 
 type Parser struct {
-	goal          symbol.Symbol
-	lexer         *lexer.LexerDelegate
-	pm            *lr.ProductionManager
-	lrActionTable map[int]map[symbol.Symbol]*lr.Action
+	pNum      int
+	atBuilder *lr.ActionTableBuilder
+	at        *lr.ActionTable
 }
 
 func NewParser() *Parser {
+	atBuilder := lr.NewActionTableBuilder()
 	return &Parser{
-		pm: lr.NewProductionManager(),
+		atBuilder: atBuilder,
 	}
 }
 
-// Add production to this parser
-func (parser *Parser) RegisterProduction(left symbol.Symbol, rights []symbol.Symbol, nullable bool, builder lr.AstNodeBuilder) {
-	parser.pm.Register(left, rights, nullable, builder)
+// Register production to this parser
+func (parser *Parser) RegProduction(left symbol.Symbol, rights []symbol.Symbol, nullable bool, callback production.Callback) {
+
 }
 
-// Build LR action table
-func (parser *Parser) Build(goal symbol.Symbol, eoi symbol.Symbol) *Parser {
-	gsm := lr.NewGrammarStateManager(parser.pm)
-	parser.lrActionTable = gsm.GenLrActionTable(goal, eoi)
-	parser.goal = goal
-	return parser
-}
-
-func (parser *Parser) SetLexer(coreLexer lexer.Lexer) *Parser {
-	parser.lexer = lexer.NewLexerDelegate(coreLexer)
-	return parser
-}
-
-// Parse Input
-func (parser *Parser) Parse() (ast ast.Node, err error) {
-	var (
-		currentState int
-		action       *lr.Action
-		args         []interface{}
-	)
-
-	token, lexerErr := parser.lexer.Next()
-	if lexerErr != nil {
-		err = fmt.Errorf("Lexer error: [%w]", lexerErr)
+func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
+	if parser.at != nil {
 		return
 	}
 
-	valueToken := token
-
-	currentSymbol := token.ToSymbol()
-
-	stateStack := lr.NewStack()
-	valueStack := lr.NewStack()
-	symbolStack := lr.NewStack()
-	stateStack.Push(0)
-	valueStack.Push(token)
-
-	for {
-		currentState = stateStack.Top().(int)
-
-		action, err = parser.getAction(currentState, currentSymbol)
-		if err != nil {
-			break
-		}
-
-		if action.IsReduce() { // reduce
-			args = []interface{}{}
-
-			for i := len(action.ReduceProduction().Rights()); i > 0; i-- {
-				symbolStack.Pop()
-				stateStack.Pop()
-				args = append(args, valueStack.Pop())
-			}
-
-			for i := 0; i < len(args)/2; i++ {
-				temp := args[i]
-				args[i] = args[len(args)-1-i]
-				args[len(args)-1-i] = temp
-			}
-
-			if action.ReduceProduction().Left() == parser.goal {
-				ast = action.ReduceProduction().Builder(args)
-				return
-			} else {
-				symbolStack.Push(action.ReduceProduction().Left())
-
-				currentSymbol = action.ReduceProduction().Left()
-
-				valueStack.Push(action.ReduceProduction().Builder(args))
-			}
-		} else { // shift
-			stateStack.Push(action.ShiftStateNum())
-
-			symbolStack.Push(currentSymbol)
-
-			if currentSymbol.IsTerminals() {
-				valueStack.Push(valueToken)
-				token, lexerErr = parser.lexer.Next()
-				if lexerErr != nil {
-					err = fmt.Errorf("Lexer error: [%w]", lexerErr)
-					return
-				}
-			} else {
-				token = parser.lexer.Current()
-			}
-
-			currentSymbol = token.ToSymbol()
-			valueToken = token
-		}
+	parser.at, err = parser.atBuilder.Build(nil, goal)
+	if err != nil {
+		return
 	}
 
 	return
 }
 
-func (parser *Parser) getAction(currentState int, s symbol.Symbol) (action *lr.Action, err error) {
-	jump, exists := parser.lrActionTable[currentState]
-	if !exists {
-		err = fmt.Errorf("%w, unexpected '%s'", SyntaxErr, parser.lexer.Current().ToString())
+// Parse Input
+func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Value, err error) {
+	var (
+		state            int
+		action           *lr.Action
+		args             []symbol.Value
+		j                uint
+		tokenSymbolValue symbol.Value
+	)
+
+	err = parser.buildActionTable(goal)
+	if err != nil {
 		return
 	}
 
-	action, exists = jump[s]
-	if !exists {
-		err = fmt.Errorf("%w, unexpected '%s'", SyntaxErr, parser.lexer.Current().ToString())
+	lexerDelegator := lexer.NewLexerDelegator(l)
+
+	token, lexerErr := lexerDelegator.Next()
+	if lexerErr != nil {
+		err = fmt.Errorf("Lexer error: [%w]", lexerErr)
 		return
+	}
+
+	stateStack := lr.NewStack()
+	valueStack := lr.NewStack()
+	symbolStack := lr.NewStack()
+	stateStack.Push(0)
+
+	for {
+		state = stateStack.Top().(int)
+
+		action, err = parser.at.Action(state, token)
+		if err != nil {
+			err = fmt.Errorf("%w [%s]", SyntaxErr, err.Error())
+			break
+		}
+
+		switch action.Type() {
+		case lr.ActionReduce:
+			args = []symbol.Value{}
+
+			paramsNum := action.ParamsNum()
+			for i := paramsNum; i > 0; i-- {
+				stateStack.Pop()
+				symbolStack.Pop()
+				args = append(args, valueStack.Pop().(symbol.Value))
+			}
+
+			for j = 0; j < paramsNum/2; j++ {
+				temp := args[j]
+				args[j] = args[paramsNum-1-j]
+				args[paramsNum-1-j] = temp
+			}
+
+			result = action.Reduce(args...)
+			symbolStack.Push(result.Symbol())
+			valueStack.Push(result)
+
+			state = action.State()
+
+			stateStack.Push(state)
+		case lr.ActionShift:
+			tokenSymbolValue = token.ToSymbol()
+			symbolStack.Push(tokenSymbolValue.Symbol())
+			valueStack.Push(tokenSymbolValue)
+			stateStack.Push(action.State())
+			if token, err = lexerDelegator.Next(); err != nil {
+				err = fmt.Errorf("Lexer error: [%w]", lexerErr)
+				break
+			}
+
+		case lr.ActionAccept:
+			break
+		}
 	}
 
 	return

@@ -2,21 +2,23 @@ package lr
 
 import (
 	"container/list"
+
+	"github.com/Orlion/merak/production"
 	"github.com/Orlion/merak/symbol"
 )
 
 type ProductionZSet struct {
-	list []*Production
+	list []*production.Production
 	keys map[string]struct{}
 }
 
-func newProductionZSet() *ProductionZSet {
+func NewProductionZSet() *ProductionZSet {
 	return &ProductionZSet{
 		keys: make(map[string]struct{}),
 	}
 }
 
-func (s *ProductionZSet) add(production *Production) {
+func (s *ProductionZSet) add(production *production.Production) {
 	code := production.getCode()
 	if _, exists := s.keys[code]; !exists {
 		s.list = append(s.list, production)
@@ -24,7 +26,7 @@ func (s *ProductionZSet) add(production *Production) {
 	}
 }
 
-func (s *ProductionZSet) addAll(productions []*Production) {
+func (s *ProductionZSet) addAll(productions []*production.Production) {
 	for _, production := range productions {
 		code := production.getCode()
 		if _, exists := s.keys[code]; !exists {
@@ -34,7 +36,7 @@ func (s *ProductionZSet) addAll(productions []*Production) {
 	}
 }
 
-func (s *ProductionZSet) exists(production *Production) bool {
+func (s *ProductionZSet) exists(production *production.Production) bool {
 	_, exists := s.keys[production.getCode()]
 	return exists
 }
@@ -43,22 +45,22 @@ type ProductionStack struct {
 	stack *Stack
 }
 
-func newProductionStack() *ProductionStack {
+func NewProductionStack() *ProductionStack {
 	return &ProductionStack{
 		stack: NewStack(),
 	}
 }
 
-func (s *ProductionStack) Push(p *Production) {
+func (s *ProductionStack) Push(p *production.Production) {
 	s.stack.Push(p)
 }
 
-func (s *ProductionStack) Pop() *Production {
-	return s.stack.Pop().(*Production)
+func (s *ProductionStack) Pop() *production.Production {
+	return s.stack.Pop().(*production.Production)
 }
 
-func (s *ProductionStack) Top() *Production {
-	return s.stack.Top().(*Production)
+func (s *ProductionStack) Top() *production.Production {
+	return s.stack.Top().(*production.Production)
 }
 
 func (s *ProductionStack) Empty() bool {
@@ -94,10 +96,9 @@ func (s *Stack) Empty() bool {
 	return s.list.Len() == 0
 }
 
-
 type Promise struct {
-	set *symbol.ZSet
-	symbol symbol.Symbol
+	set       *symbol.ZSet
+	symbol    symbol.Symbol
 	isPromise bool
 }
 

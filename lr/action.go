@@ -1,27 +1,58 @@
 package lr
 
+import (
+	"github.com/Orlion/merak/production"
+	"github.com/Orlion/merak/symbol"
+)
+
+type ActionType int8
+
+const (
+	ActionAccept ActionType = iota + 1
+	ActionReduce
+	ActionShift
+)
+
 type Action struct {
-	isReduce         bool        // true: reduce，false: shift
-	reduceProduction *Production // reduce production
-	shiftStateNum    int         // shift to stateNum
+	ReduceAction
+	ShiftAction
+	t ActionType
 }
 
-func (action *Action) IsReduce() bool {
-	return action.isReduce
+func (action *Action) Type() ActionType {
+	return action.t
 }
 
-func (action *Action) ReduceProduction() *Production {
-	return action.reduceProduction
+func NewReduceAction(callback production.Callback, paramsNum uint) *Action {
+	action := new(Action)
+	action.callback = callback
+	action.paramsNum = paramsNum
+	return action
 }
 
-func (action *Action) ShiftStateNum() int {
-	return action.shiftStateNum
+func NewShiftAction(state int) *Action {
+	action := new(Action)
+	action.state = state
+	return action
 }
 
-func newReduceAction(reduceProduction *Production) *Action {
-	return &Action{isReduce: true, reduceProduction: reduceProduction}
+type ReduceAction struct {
+	callback  production.Callback
+	paramsNum uint
 }
 
-func newShiftAction(shiftStateNum int) *Action {
-	return &Action{isReduce: false, shiftStateNum: shiftStateNum}
+func (action *ReduceAction) Reduce(params ...symbol.Value) symbol.Value {
+	return action.callback(params...)
+}
+
+func (action *ReduceAction) ParamsNum() uint {
+	return action.paramsNum
+}
+
+type ShiftAction struct {
+	state int
+}
+
+func (action *ShiftAction) State() int {
+	return action.state
 }
