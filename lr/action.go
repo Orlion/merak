@@ -1,7 +1,7 @@
 package lr
 
 import (
-	"github.com/Orlion/merak/production"
+	"github.com/Orlion/merak/item"
 	"github.com/Orlion/merak/symbol"
 )
 
@@ -23,7 +23,7 @@ func (action *Action) Type() ActionType {
 	return action.t
 }
 
-func NewReduceAction(callback production.Callback, paramsNum uint) *Action {
+func NewReduceAction(callback item.Callback, paramsNum int) *Action {
 	action := new(Action)
 	action.callback = callback
 	action.paramsNum = paramsNum
@@ -37,15 +37,15 @@ func NewShiftAction(state int) *Action {
 }
 
 type ReduceAction struct {
-	callback  production.Callback
-	paramsNum uint
+	callback  item.Callback
+	paramsNum int
 }
 
 func (action *ReduceAction) Reduce(params ...symbol.Value) symbol.Value {
 	return action.callback(params...)
 }
 
-func (action *ReduceAction) ParamsNum() uint {
+func (action *ReduceAction) ParamsNum() int {
 	return action.paramsNum
 }
 

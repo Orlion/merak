@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/Orlion/merak/data_structure"
+	"github.com/Orlion/merak/first_set"
+	"github.com/Orlion/merak/item"
 	"github.com/Orlion/merak/lexer"
 	"github.com/Orlion/merak/lr"
-	"github.com/Orlion/merak/production"
 	"github.com/Orlion/merak/symbol"
 )
 
@@ -15,20 +17,18 @@ var (
 )
 
 type Parser struct {
-	pNum      int
-	atBuilder *lr.ActionTableBuilder
-	at        *lr.ActionTable
+	at   *lr.ActionTable
+	itm  *item.Manager
+	fsb  *first_set.Builder
+	pNum int
 }
 
 func NewParser() *Parser {
-	atBuilder := lr.NewActionTableBuilder()
-	return &Parser{
-		atBuilder: atBuilder,
-	}
+	return &Parser{}
 }
 
 // Register production to this parser
-func (parser *Parser) RegProduction(left symbol.Symbol, rights []symbol.Symbol, nullable bool, callback production.Callback) {
+func (parser *Parser) RegProduction(left symbol.Symbol, rights []symbol.Symbol, nullable bool, callback item.Callback) {
 
 }
 
@@ -37,7 +37,12 @@ func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
 		return
 	}
 
-	parser.at, err = parser.atBuilder.Build(nil, goal)
+	fs, err := parser.fsb.Build()
+	if err != nil {
+		return
+	}
+
+	parser.at, err = lr.NewActionTableBuilder(parser.itm, fs).Build(goal)
 	if err != nil {
 		return
 	}
@@ -51,7 +56,6 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 		state            int
 		action           *lr.Action
 		args             []symbol.Value
-		j                uint
 		tokenSymbolValue symbol.Value
 	)
 
@@ -68,15 +72,15 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 		return
 	}
 
-	stateStack := lr.NewStack()
-	valueStack := lr.NewStack()
-	symbolStack := lr.NewStack()
+	stateStack := data_structure.NewStack()
+	valueStack := data_structure.NewStack()
+	symbolStack := data_structure.NewStack()
 	stateStack.Push(0)
 
 	for {
 		state = stateStack.Top().(int)
 
-		action, err = parser.at.Action(state, token)
+		action, err = parser.at.Action(state, token.ToSymbol().Symbol())
 		if err != nil {
 			err = fmt.Errorf("%w [%s]", SyntaxErr, err.Error())
 			break
@@ -93,7 +97,7 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 				args = append(args, valueStack.Pop().(symbol.Value))
 			}
 
-			for j = 0; j < paramsNum/2; j++ {
+			for j := 0; j < paramsNum/2; j++ {
 				temp := args[j]
 				args[j] = args[paramsNum-1-j]
 				args[paramsNum-1-j] = temp

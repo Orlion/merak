@@ -1,7 +1,7 @@
 package symbol
 
 type ZSet struct {
-	List []Symbol
+	list []Symbol
 	keys map[Symbol]struct{}
 }
 
@@ -13,7 +13,7 @@ func NewSymbolZSet() *ZSet {
 
 func (s *ZSet) Add(symbol Symbol) bool {
 	if _, exists := s.keys[symbol]; !exists {
-		s.List = append(s.List, symbol)
+		s.list = append(s.list, symbol)
 		s.keys[symbol] = struct{}{}
 
 		return true
@@ -23,9 +23,9 @@ func (s *ZSet) Add(symbol Symbol) bool {
 }
 
 func (s *ZSet) AddAll(symbolZSet *ZSet) {
-	for _, symbol := range symbolZSet.List {
+	for _, symbol := range symbolZSet.list {
 		if _, exists := s.keys[symbol]; !exists {
-			s.List = append(s.List, symbol)
+			s.list = append(s.list, symbol)
 			s.keys[symbol] = struct{}{}
 		}
 	}
@@ -34,4 +34,8 @@ func (s *ZSet) AddAll(symbolZSet *ZSet) {
 func (s *ZSet) Exists(symbol Symbol) bool {
 	_, exists := s.keys[symbol]
 	return exists
+}
+
+func (s *ZSet) List() []Symbol {
+	return s.list
 }
