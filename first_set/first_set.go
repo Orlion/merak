@@ -12,6 +12,6 @@ func NewFirstSet(m map[symbol.Symbol]*Production) *FirstSet {
 	}
 }
 
-func (fs *FirstSet) Get(s symbol.Symbol) *symbol.ZSet {
-	return fs.m[s].GetFirstZSet()
+func (fs *FirstSet) Get(s symbol.Symbol) *symbol.Set {
+	return fs.m[s].GetFirstSet()
 }

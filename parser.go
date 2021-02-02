@@ -17,19 +17,22 @@ var (
 )
 
 type Parser struct {
-	at   *lr.ActionTable
-	itm  *item.Manager
-	fsb  *first_set.Builder
-	pNum int
+	at  *lr.ActionTable
+	itm *item.Manager
+	fsb *first_set.Builder
 }
 
 func NewParser() *Parser {
-	return &Parser{}
+	return &Parser{
+		itm: item.NewManager(),
+		fsb: first_set.NewBuilder(),
+	}
 }
 
 // Register production to this parser
-func (parser *Parser) RegProduction(left symbol.Symbol, rights []symbol.Symbol, nullable bool, callback item.Callback) {
-
+func (parser *Parser) RegProduction(result symbol.Symbol, params []symbol.Symbol, callback item.Callback) {
+	parser.itm.RegItem(result, params, callback)
+	parser.fsb.Reg(result, params)
 }
 
 func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
@@ -37,11 +40,13 @@ func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
 		return
 	}
 
+	// build first set
 	fs, err := parser.fsb.Build()
 	if err != nil {
 		return
 	}
 
+	// build action table
 	parser.at, err = lr.NewActionTableBuilder(parser.itm, fs).Build(goal)
 	if err != nil {
 		return

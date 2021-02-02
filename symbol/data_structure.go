@@ -1,41 +1,40 @@
 package symbol
 
-type ZSet struct {
-	list []Symbol
-	keys map[Symbol]struct{}
+type Set struct {
+	elems map[Symbol]struct{}
 }
 
-func NewSymbolZSet() *ZSet {
-	return &ZSet{
-		keys: make(map[Symbol]struct{}),
+func NewSymbolSet() *Set {
+	return &Set{
+		elems: make(map[Symbol]struct{}),
 	}
 }
 
-func (s *ZSet) Add(symbol Symbol) bool {
-	if _, exists := s.keys[symbol]; !exists {
-		s.list = append(s.list, symbol)
-		s.keys[symbol] = struct{}{}
-
+func (s *Set) Add(symbol Symbol) bool {
+	if _, exists := s.elems[symbol]; !exists {
+		s.elems[symbol] = struct{}{}
 		return true
 	}
 
 	return false
 }
 
-func (s *ZSet) AddAll(symbolZSet *ZSet) {
-	for _, symbol := range symbolZSet.list {
-		if _, exists := s.keys[symbol]; !exists {
-			s.list = append(s.list, symbol)
-			s.keys[symbol] = struct{}{}
+func (s *Set) AddAll(anotherSet *Set) (num int) {
+	for symbol := range anotherSet.elems {
+		if _, exists := s.elems[symbol]; !exists {
+			s.elems[symbol] = struct{}{}
+			num++
 		}
 	}
+
+	return num
 }
 
-func (s *ZSet) Exists(symbol Symbol) bool {
-	_, exists := s.keys[symbol]
+func (s *Set) Exists(symbol Symbol) bool {
+	_, exists := s.elems[symbol]
 	return exists
 }
 
-func (s *ZSet) List() []Symbol {
-	return s.list
+func (s *Set) Elems() map[Symbol]struct{} {
+	return s.elems
 }

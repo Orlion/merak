@@ -8,7 +8,7 @@ type Item struct {
 	params    []symbol.Symbol
 	callback  Callback
 	result    symbol.Symbol
-	lookAhead *symbol.ZSet
+	lookAhead *symbol.Set
 	dotPos    int
 	id        int
 }
@@ -57,7 +57,7 @@ func (it *Item) Clone() *Item {
 	return newProduction
 }
 
-func (it *Item) AddLookAheadSet(lookAhead *symbol.ZSet) {
+func (it *Item) AddLookAheadSet(lookAhead *symbol.Set) {
 	it.lookAhead = lookAhead
 }
 
@@ -92,12 +92,12 @@ func (it *Item) productionEquals(input *Item) bool {
 }
 
 func (it *Item) lookAheadCompare(input *Item) int {
-	if len(it.lookAhead.List()) < len(input.lookAhead.List()) {
+	if len(it.lookAhead.Elems()) < len(input.lookAhead.Elems()) {
 		return -1
 	}
 
-	if len(it.lookAhead.List()) > len(input.lookAhead.List()) {
-		for _, s := range input.lookAhead.List() {
+	if len(it.lookAhead.Elems()) > len(input.lookAhead.Elems()) {
+		for s := range input.lookAhead.Elems() {
 			if !it.lookAhead.Exists(s) {
 				return -1
 			}
@@ -105,7 +105,7 @@ func (it *Item) lookAheadCompare(input *Item) int {
 		return 1
 	}
 
-	for _, s := range it.lookAhead.List() {
+	for s := range it.lookAhead.Elems() {
 		if !input.lookAhead.Exists(s) {
 			return -1
 		}
@@ -118,7 +118,7 @@ func (it *Item) CanBeReduce() bool {
 	return it.dotPos >= len(it.params)
 }
 
-func (it *Item) GetLookAhead() *symbol.ZSet {
+func (it *Item) GetLookAhead() *symbol.Set {
 	return it.lookAhead
 }
 

@@ -11,18 +11,18 @@ const (
 )
 
 type Production struct {
-	value      symbol.Symbol
+	result     symbol.Symbol
 	paramsList [][]symbol.Symbol
-	firstZSet  *symbol.ZSet
+	firstSet   *symbol.Set
 	nullable   bool
 	state      ProductionState
 }
 
-func NewProduction(s symbol.Symbol, params []symbol.Symbol) *Production {
+func NewProduction(result symbol.Symbol, params []symbol.Symbol) *Production {
 	return &Production{
-		value:      s,
+		result:     result,
 		paramsList: [][]symbol.Symbol{params},
-		firstZSet:  symbol.NewSymbolZSet(),
+		firstSet:   symbol.NewSymbolSet(),
 	}
 }
 
@@ -30,24 +30,24 @@ func (p *Production) AddParams(params []symbol.Symbol) {
 	p.paramsList = append(p.paramsList, params)
 }
 
-func (p *Production) AddFirstZSet(s symbol.Symbol) bool {
-	return p.firstZSet.Add(s)
+func (p *Production) AddFirstSet(s symbol.Symbol) bool {
+	return p.firstSet.Add(s)
 }
 
-func (p *Production) AddAllFirstZSet(set *symbol.ZSet) {
-	p.firstZSet.AddAll(set)
+func (p *Production) AddAllFirstSet(set *symbol.Set) int {
+	return p.firstSet.AddAll(set)
 }
 
-func (p *Production) GetValue() symbol.Symbol {
-	return p.value
+func (p *Production) GetResult() symbol.Symbol {
+	return p.result
 }
 
 func (p *Production) GetParamsList() [][]symbol.Symbol {
 	return p.paramsList
 }
 
-func (p *Production) GetFirstZSet() *symbol.ZSet {
-	return p.firstZSet
+func (p *Production) GetFirstSet() *symbol.Set {
+	return p.firstSet
 }
 
 func (p *Production) GetState() ProductionState {

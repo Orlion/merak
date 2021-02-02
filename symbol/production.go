@@ -11,7 +11,7 @@ const (
 type Production struct {
 	value       Symbol
 	productions [][]Symbol
-	firstZSet   *ZSet
+	firstSet    *Set
 	nullable    bool
 	state       ProductionState
 }
@@ -21,7 +21,7 @@ func NewProduction(symbol Symbol, nullable bool, production []Symbol) *Productio
 		value:       symbol,
 		nullable:    nullable,
 		productions: [][]Symbol{production},
-		firstZSet:   NewSymbolZSet(),
+		firstSet:    NewSymbolSet(),
 	}
 }
 
@@ -29,12 +29,12 @@ func (sp *Production) AddProduction(production []Symbol) {
 	sp.productions = append(sp.productions, production)
 }
 
-func (sp *Production) AddFirstZSet(s Symbol) bool {
-	return sp.firstZSet.Add(s)
+func (sp *Production) AddFirstSet(s Symbol) bool {
+	return sp.firstSet.Add(s)
 }
 
-func (sp *Production) AddAllFirstZSet(set *ZSet) {
-	sp.firstZSet.AddAll(set)
+func (sp *Production) AddAllFirstZSet(set *Set) {
+	sp.firstSet.AddAll(set)
 }
 
 func (sp *Production) GetValue() Symbol {
@@ -45,8 +45,8 @@ func (sp *Production) GetProductions() [][]Symbol {
 	return sp.productions
 }
 
-func (sp *Production) GetFirstZSet() *ZSet {
-	return sp.firstZSet
+func (sp *Production) GetFirstSet() *Set {
+	return sp.firstSet
 }
 
 func (sp *Production) IsNullable() bool {

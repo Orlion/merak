@@ -122,7 +122,7 @@ func (gs *GrammarState) makeReduce() map[symbol.Symbol]*Action {
 	m := make(map[symbol.Symbol]*Action)
 	for _, it := range gs.its {
 		if it.CanBeReduce() {
-			for _, s := range it.GetLookAhead().List() {
+			for s := range it.GetLookAhead().Elems() {
 				m[s] = NewReduceAction(it.GetCallback(), it.ParamsLen())
 			}
 		}

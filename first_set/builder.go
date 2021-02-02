@@ -18,7 +18,7 @@ func NewBuilder() *Builder {
 	}
 }
 
-func (b *Builder) Register(s symbol.Symbol, params []symbol.Symbol) {
+func (b *Builder) Reg(s symbol.Symbol, params []symbol.Symbol) {
 	if p, exists := b.m[s]; exists {
 		if !s.IsTerminal() {
 			p.AddParams(params)
@@ -26,8 +26,17 @@ func (b *Builder) Register(s symbol.Symbol, params []symbol.Symbol) {
 	} else {
 		b.m[s] = NewProduction(s, params)
 	}
+
+	for _, param := range params {
+		if param.IsTerminal() {
+			if _, exists := b.m[param]; !exists {
+				b.m[param] = NewProduction(param, []symbol.Symbol{param})
+			}
+		}
+	}
 }
 
+// build first set
 func (b *Builder) Build() (fs *FirstSet, err error) {
 	count := 0
 	for b.pass {
@@ -50,28 +59,20 @@ func (b *Builder) Build() (fs *FirstSet, err error) {
 }
 
 func (b *Builder) genProductionFirstSet(p *Production) {
-	if p.GetValue().IsTerminal() {
-		if p.AddFirstZSet(p.GetValue()) {
+	if p.GetResult().IsTerminal() {
+		// If it is a terminator then it is its own FirstSet element
+		if p.AddFirstSet(p.GetResult()) {
 			b.pass = true
 		}
 	} else {
 		for _, params := range p.GetParamsList() {
 			if params[0].IsTerminal() {
-				if p.AddFirstZSet(params[0]) {
+				if p.AddFirstSet(params[0]) {
 					b.pass = true
 				}
 			} else {
-				for _, curSymbol := range params {
-					curP := b.m[curSymbol]
-					curSet := curP.GetFirstZSet()
-
-					for _, s := range curSet.List() {
-						if p.AddFirstZSet(s) {
-							b.pass = true
-						}
-					}
-
-					break
+				if p.AddAllFirstSet(b.m[params[0]].GetFirstSet()) > 0 {
+					b.pass = true
 				}
 			}
 		}
