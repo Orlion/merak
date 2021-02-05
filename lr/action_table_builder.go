@@ -12,11 +12,11 @@ import (
 )
 
 type ActionTableBuilder struct {
-	gsList   []*GrammarState
-	itm      *item.Manager
-	fs       *first_set.FirstSet
-	states   map[string]*GrammarState
-	stateNum int
+	gsList      []*GrammarState
+	itm         *item.Manager
+	fs          *first_set.FirstSet
+	states      map[string]*GrammarState
+	lastStateId int
 }
 
 func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet) *ActionTableBuilder {
@@ -26,15 +26,21 @@ func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet) *ActionTab
 	}
 }
 
+func (atb *ActionTableBuilder) newGrammarState(its []*item.Item) (gs *GrammarState) {
+	gs = NewGrammarState(atb.lastStateId, its, atb)
+	atb.lastStateId++
+	return
+}
+
 func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err error) {
 	its := atb.itm.GetItems(goal)
 
 	if len(its) < 1 {
-		err = errors.New("goal has no productions")
+		err = errors.New("goal has no any productions")
 		return
 	}
 
-	gs := NewGrammarState(len(atb.gsList), its, atb)
+	gs := atb.newGrammarState(its)
 	gs.createTransition()
 
 	at = NewActionTable()

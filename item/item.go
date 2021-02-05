@@ -1,64 +1,44 @@
 package item
 
-import "github.com/Orlion/merak/symbol"
-
-type Callback func(params ...symbol.Value) symbol.Value
+import (
+	"github.com/Orlion/merak/first_set"
+	"github.com/Orlion/merak/symbol"
+)
 
 type Item struct {
-	params    []symbol.Symbol
-	callback  Callback
-	result    symbol.Symbol
-	lookAhead *symbol.Set
-	dotPos    int
-	id        int
+	production *Production
+	lookAhead  *symbol.Set
+	dotPos     int
 }
 
-func NewItem(id int, result symbol.Symbol, params []symbol.Symbol, callback Callback, dotPos int) *Item {
-	if !result.IsTerminal() {
-		panic("result must be a terminal")
-	}
-
-	if callback == nil {
-		panic("callback cannot be a nil")
-	}
-
+func NewItem(production *Production, dotPos int) *Item {
 	return &Item{
-		params:   params,
-		callback: callback,
-		result:   result,
-		dotPos:   dotPos,
-		id:       id,
+		production: production,
+		dotPos:     dotPos,
+		lookAhead:  symbol.NewSymbolSet(),
 	}
 }
 
 func (it *Item) DotForward() *Item {
-	newItem := NewItem(it.id, it.result, it.params, it.callback, it.dotPos+1)
+	newItem := NewItem(it.production, it.dotPos+1)
 	newItem.lookAhead.AddAll(it.lookAhead)
 
 	return newItem
 }
 
-func (it *Item) IsDotEnd() bool {
-	return false
+func (it *Item) DotEnd() bool {
+	return it.dotPos >= it.production.ParamsLen()
 }
 
 func (it *Item) GetDotSymbol() symbol.Symbol {
-	return nil
+	return it.production.GetParam(it.dotPos)
 }
 
-func (it *Item) Id() int {
-	return it.id
-}
+func (it *Item) CloneWithLookAhead(lookAhead *symbol.Set) *Item {
+	newItem := NewItem(it.production, it.dotPos)
+	newItem.lookAhead.AddAll(lookAhead)
 
-func (it *Item) Clone() *Item {
-	newProduction := NewItem(it.id, it.result, it.params, it.callback, it.dotPos)
-	newProduction.lookAhead.AddAll(it.lookAhead)
-
-	return newProduction
-}
-
-func (it *Item) AddLookAheadSet(lookAhead *symbol.Set) {
-	it.lookAhead = lookAhead
+	return newItem
 }
 
 func (it *Item) IsCoverUp(oldItem *Item) bool {
@@ -70,25 +50,7 @@ func (it *Item) IsCoverUp(oldItem *Item) bool {
 }
 
 func (it *Item) productionEquals(input *Item) bool {
-	if it.result != input.result {
-		return false
-	}
-
-	if it.dotPos != input.dotPos {
-		return false
-	}
-
-	if len(it.params) != len(input.params) {
-		return false
-	}
-
-	for k, v := range it.params {
-		if v != input.params[k] {
-			return false
-		}
-	}
-
-	return true
+	return it.production.GetId() == input.production.GetId()
 }
 
 func (it *Item) lookAheadCompare(input *Item) int {
@@ -115,17 +77,25 @@ func (it *Item) lookAheadCompare(input *Item) int {
 }
 
 func (it *Item) CanBeReduce() bool {
-	return it.dotPos >= len(it.params)
+	return it.dotPos >= it.production.ParamsLen()
 }
 
 func (it *Item) GetLookAhead() *symbol.Set {
 	return it.lookAhead
 }
 
-func (it *Item) GetCallback() Callback {
-	return it.callback
+func (it *Item) GetProduction() *Production {
+	return it.production
 }
 
-func (it *Item) ParamsLen() int {
-	return len(it.params)
+func (it *Item) ComputeFirstSetOfBetaAndC(fs *first_set.FirstSet) (firstSet *symbol.Set) {
+	firstSet = symbol.NewSymbolSet()
+
+	if len(it.production.params) > it.dotPos+1 {
+		firstSet.AddAll(fs.Get(it.production.params[it.dotPos+1]))
+	} else {
+		firstSet.AddAll(it.lookAhead)
+	}
+
+	return
 }

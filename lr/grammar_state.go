@@ -9,28 +9,32 @@ type GrammarState struct {
 	its            []*item.Item
 	partition      map[symbol.Symbol][]*item.Item
 	transition     map[symbol.Symbol]*GrammarState
-	closureZSet    *item.ItemZSet
+	closureSet     *item.ItemSet
 	atb            *ActionTableBuilder
-	state          int
+	id             int
 	transitionDone bool
 }
 
-func NewGrammarState(state int, its []*item.Item, atb *ActionTableBuilder) *GrammarState {
+func NewGrammarState(id int, its []*item.Item, atb *ActionTableBuilder) *GrammarState {
 	return &GrammarState{
-		its:   its,
-		atb:   atb,
-		state: state,
+		its: its,
+		atb: atb,
+		id:  id,
 	}
 }
 
 func (gs *GrammarState) createTransition() {
+	if gs.transitionDone {
+		return
+	}
+	gs.transitionDone = true
+
 	gs.makeClosure()
 }
 
 func (gs *GrammarState) makeClosure() {
-	gs.closureZSet = item.NewItemZSet()
-
-	gs.closureZSet.AddList(gs.its)
+	gs.closureSet = item.NewItemSet()
+	gs.closureSet.AddList(gs.its)
 
 	itemStack := item.NewItemStack()
 
@@ -40,7 +44,7 @@ func (gs *GrammarState) makeClosure() {
 
 	for !itemStack.Empty() {
 		it := itemStack.Pop()
-		if it.IsDotEnd() {
+		if it.DotEnd() {
 			continue
 		}
 		s := it.GetDotSymbol()
@@ -53,11 +57,10 @@ func (gs *GrammarState) makeClosure() {
 		lookAhead := gs.atb.itm.ComputeFirstSetOfBetaAndC(it, gs.atb.fs)
 
 		for _, oldItem := range closures {
-			newItem := oldItem.Clone()
-			newItem.AddLookAheadSet(lookAhead)
+			newItem := oldItem.CloneWithLookAhead(lookAhead)
 
-			if !gs.closureZSet.Exists(newItem) {
-				gs.closureZSet.Add(newItem)
+			if !gs.closureSet.Exists(newItem) {
+				gs.closureSet.Add(newItem)
 
 				itemStack.Push(newItem)
 
@@ -68,22 +71,17 @@ func (gs *GrammarState) makeClosure() {
 }
 
 func (gs *GrammarState) removeRedundantProduction(newItem *item.Item) {
-	target := item.NewItemZSet()
-	for _, it := range gs.closureZSet.List() {
+	for it := range gs.closureSet.Elems() {
 		if newItem.IsCoverUp(it) {
-			continue
+			gs.closureSet.Delete(it)
 		}
-
-		target.Add(it)
 	}
-
-	gs.closureZSet = target
 }
 
 func (gs *GrammarState) makePartition() {
 	gs.partition = make(map[symbol.Symbol][]*item.Item)
-	for _, it := range gs.closureZSet.List() {
-		if !it.IsDotEnd() {
+	for it := range gs.closureSet.Elems() {
+		if !it.DotEnd() {
 			gs.partition[it.GetDotSymbol()] = append(gs.partition[it.GetDotSymbol()], it)
 		} else {
 			gs.its = append(gs.its, it)
@@ -123,7 +121,7 @@ func (gs *GrammarState) makeReduce() map[symbol.Symbol]*Action {
 	for _, it := range gs.its {
 		if it.CanBeReduce() {
 			for s := range it.GetLookAhead().Elems() {
-				m[s] = NewReduceAction(it.GetCallback(), it.ParamsLen())
+				m[s] = NewReduceAction(it.GetProduction().GetCallback(), it.GetProduction().ParamsLen())
 			}
 		}
 	}

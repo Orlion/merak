@@ -31,7 +31,7 @@ func NewParser() *Parser {
 
 // Register production to this parser
 func (parser *Parser) RegProduction(result symbol.Symbol, params []symbol.Symbol, callback item.Callback) {
-	parser.itm.RegItem(result, params, callback)
+	parser.itm.RegProduction(result, params, callback)
 	parser.fsb.Reg(result, params)
 }
 

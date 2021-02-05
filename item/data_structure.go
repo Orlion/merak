@@ -2,42 +2,37 @@ package item
 
 import "github.com/Orlion/merak/data_structure"
 
-type ItemZSet struct {
-	list []*Item
-	keys map[int]struct{}
+type ItemSet struct {
+	elems map[*Item]struct{}
 }
 
-func NewItemZSet() *ItemZSet {
-	return &ItemZSet{
-		keys: make(map[int]struct{}),
+func NewItemSet() *ItemSet {
+	return &ItemSet{
+		elems: make(map[*Item]struct{}),
 	}
 }
 
-func (s *ItemZSet) Add(it *Item) {
-	id := it.Id()
-	if _, exists := s.keys[id]; !exists {
-		s.list = append(s.list, it)
-		s.keys[id] = struct{}{}
-	}
+func (s *ItemSet) Add(it *Item) {
+	s.elems[it] = struct{}{}
 }
 
-func (s *ItemZSet) AddList(its []*Item) {
+func (s *ItemSet) AddList(its []*Item) {
 	for _, it := range its {
-		id := it.Id()
-		if _, exists := s.keys[id]; !exists {
-			s.list = append(s.list, it)
-			s.keys[id] = struct{}{}
-		}
+		s.elems[it] = struct{}{}
 	}
 }
 
-func (s *ItemZSet) Exists(it *Item) bool {
-	_, exists := s.keys[it.Id()]
+func (s *ItemSet) Exists(it *Item) bool {
+	_, exists := s.elems[it]
 	return exists
 }
 
-func (s *ItemZSet) List() []*Item {
-	return s.list
+func (s *ItemSet) Delete(it *Item) {
+	delete(s.elems, it)
+}
+
+func (s *ItemSet) Elems() map[*Item]struct{} {
+	return s.elems
 }
 
 type ItemStack struct {
