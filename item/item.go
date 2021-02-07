@@ -30,6 +30,10 @@ func (it *Item) DotEnd() bool {
 	return it.dotPos >= it.production.ParamsLen()
 }
 
+func (it *Item) DotPos() int {
+	return it.dotPos
+}
+
 func (it *Item) GetDotSymbol() symbol.Symbol {
 	return it.production.GetParam(it.dotPos)
 }

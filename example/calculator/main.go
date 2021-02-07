@@ -2,6 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"log"
+	"os"
+	"strconv"
 
 	"github.com/Orlion/merak"
 	"github.com/Orlion/merak/lexer"
@@ -24,13 +28,32 @@ const (
 type Token struct {
 	Text string
 	Type TokenType
+	line int
+	col  int
 }
 
-func NewToken(text string, tokenType TokenType) *Token {
+func NewToken(text string, tokenType TokenType, col int) *Token {
 	return &Token{
 		Text: text,
 		Type: tokenType,
+		col:  col,
 	}
+}
+
+func (t *Token) ToString() string {
+	return strconv.Itoa(int(t.Type))
+}
+
+func (t *Token) Filename() string {
+	return "input"
+}
+
+func (t *Token) Line() int {
+	return t.line
+}
+
+func (t *Token) Col() int {
+	return t.col
 }
 
 func (t *Token) ToSymbol() symbol.Value {
@@ -68,6 +91,10 @@ func (s Symbol) IsTerminal() bool {
 	return string(s)[0] >= 'A' && string(s)[0] <= 'Z'
 }
 
+func (s Symbol) ToString() string {
+	return string(s)
+}
+
 const (
 	SymbolEoi    Symbol = "eoi"
 	SymbolAdd    Symbol = "+"
@@ -103,14 +130,15 @@ func main() {
 	parser := initParser()
 
 	l := &Lexer{
-		tokens: []*Token{NewToken("123", TokenNumber), NewToken("+", TokenAdd), NewToken("456", TokenNumber)},
+		tokens: []*Token{NewToken("123", TokenNumber, 1), NewToken("+", TokenAdd, 2), NewToken("456", TokenNumber, 3)},
 	}
 
-	parser.Parse(SymbolGOAL, l)
+	r, err := parser.Parse(SymbolGOAL, l)
+	fmt.Println(r, err)
 }
 
 func initParser() *merak.Parser {
-	parser := merak.NewParser()
+	parser := merak.NewParser(log.New(os.Stderr, "", 0))
 	/*
 		GOAL -> EXPR eoi
 		EXPR -> term

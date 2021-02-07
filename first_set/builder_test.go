@@ -12,6 +12,10 @@ func (s Symbol) IsTerminal() bool {
 	return string(s)[0] < 'A' || string(s)[0] > 'Z'
 }
 
+func (s Symbol) ToString() string {
+	return string(s)
+}
+
 const (
 	SymbolEoi    Symbol = "eoi"
 	SymbolAdd    Symbol = "+"

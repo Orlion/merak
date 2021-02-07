@@ -8,24 +8,35 @@ import (
 	"github.com/Orlion/merak/first_set"
 	"github.com/Orlion/merak/item"
 	"github.com/Orlion/merak/lexer"
+	"github.com/Orlion/merak/log"
 	"github.com/Orlion/merak/lr"
 	"github.com/Orlion/merak/symbol"
 )
 
 var (
-	SyntaxErr = errors.New("Parse error: syntax error")
+	SyntaxErr = errors.New("syntax error")
 )
 
-type Parser struct {
-	at  *lr.ActionTable
-	itm *item.Manager
-	fsb *first_set.Builder
+func newSyntaxErr(unexpected, expecting lexer.Token) error {
+	if expecting == nil {
+		return fmt.Errorf("%s:%d:%d: %w: unexpected %s", unexpected.Filename(), unexpected.Line(), unexpected.Col(), SyntaxErr, unexpected.ToString())
+	} else {
+		return fmt.Errorf("%s:%d:%d: %w: unexpected %s, ecpecting %s", unexpected.Filename(), unexpected.Line(), unexpected.Col(), SyntaxErr, unexpected.ToString(), expecting.ToString())
+	}
 }
 
-func NewParser() *Parser {
+type Parser struct {
+	logger log.Logger
+	at     *lr.ActionTable
+	itm    *item.Manager
+	fsb    *first_set.Builder
+}
+
+func NewParser(logger log.Logger) *Parser {
 	return &Parser{
-		itm: item.NewManager(),
-		fsb: first_set.NewBuilder(),
+		logger: logger,
+		itm:    item.NewManager(),
+		fsb:    first_set.NewBuilder(),
 	}
 }
 
@@ -47,7 +58,7 @@ func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
 	}
 
 	// build action table
-	parser.at, err = lr.NewActionTableBuilder(parser.itm, fs).Build(goal)
+	parser.at, err = lr.NewActionTableBuilder(parser.itm, fs, parser.logger).Build(goal)
 	if err != nil {
 		return
 	}
@@ -71,9 +82,8 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 
 	lexerDelegator := lexer.NewLexerDelegator(l)
 
-	token, lexerErr := lexerDelegator.Next()
-	if lexerErr != nil {
-		err = fmt.Errorf("Lexer error: [%w]", lexerErr)
+	token, err := lexerDelegator.Next()
+	if err != nil {
 		return
 	}
 
@@ -87,7 +97,7 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 
 		action, err = parser.at.Action(state, token.ToSymbol().Symbol())
 		if err != nil {
-			err = fmt.Errorf("%w [%s]", SyntaxErr, err.Error())
+			err = newSyntaxErr(token, nil)
 			break
 		}
 
@@ -111,17 +121,12 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 			result = action.Reduce(args...)
 			symbolStack.Push(result.Symbol())
 			valueStack.Push(result)
-
-			state = action.State()
-
-			stateStack.Push(state)
 		case lr.ActionShift:
 			tokenSymbolValue = token.ToSymbol()
 			symbolStack.Push(tokenSymbolValue.Symbol())
 			valueStack.Push(tokenSymbolValue)
 			stateStack.Push(action.State())
 			if token, err = lexerDelegator.Next(); err != nil {
-				err = fmt.Errorf("Lexer error: [%w]", lexerErr)
 				break
 			}
 

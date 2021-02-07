@@ -2,12 +2,12 @@ package lr
 
 import (
 	"errors"
-	"sort"
-	"strconv"
+	"fmt"
 	"strings"
 
 	"github.com/Orlion/merak/first_set"
 	"github.com/Orlion/merak/item"
+	"github.com/Orlion/merak/log"
 	"github.com/Orlion/merak/symbol"
 )
 
@@ -15,26 +15,28 @@ type ActionTableBuilder struct {
 	gsList      []*GrammarState
 	itm         *item.Manager
 	fs          *first_set.FirstSet
-	states      map[string]*GrammarState
+	logger      log.Logger
 	lastStateId int
 }
 
-func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet) *ActionTableBuilder {
+func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet, logger log.Logger) *ActionTableBuilder {
 	return &ActionTableBuilder{
-		itm: itm,
-		fs:  fs,
+		logger: logger,
+		itm:    itm,
+		fs:     fs,
+		gsList: make([]*GrammarState, 0),
 	}
 }
 
 func (atb *ActionTableBuilder) newGrammarState(its []*item.Item) (gs *GrammarState) {
 	gs = NewGrammarState(atb.lastStateId, its, atb)
 	atb.lastStateId++
+	atb.gsList = append(atb.gsList, gs)
 	return
 }
 
 func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err error) {
 	its := atb.itm.GetItems(goal)
-
 	if len(its) < 1 {
 		err = errors.New("goal has no any productions")
 		return
@@ -42,6 +44,8 @@ func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err e
 
 	gs := atb.newGrammarState(its)
 	gs.createTransition()
+	// print gs
+	atb.print()
 
 	at = NewActionTable()
 
@@ -49,44 +53,51 @@ func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err e
 		jump := make(map[symbol.Symbol]*Action)
 		for s, childGs := range gs.transition {
 			if _, exists := jump[s]; exists {
-				panic("shift conflict")
+				err = errors.New("shift conflict")
+				return
 			}
-			jump[s] = NewShiftAction(childGs.state)
+			jump[s] = NewShiftAction(childGs.id)
 		}
 
 		reduceMap := gs.makeReduce()
 		for s, action := range reduceMap {
 			if _, exists := jump[s]; exists {
-				panic("shift reduce conflict")
+				err = errors.New("shift reduce conflict")
+				return
 			}
 			jump[s] = action
 		}
 
-		at.add(gs.state, jump)
+		at.add(gs.id, jump)
 	}
 
 	return
 }
 
-func (atb *ActionTableBuilder) getGrammarState(its []*item.Item) *GrammarState {
-	key := atb.key(its)
-	if s, exists := atb.states[key]; exists {
-		return s
-	} else {
-		atb.stateNum++
-		gs := NewGrammarState(atb.stateNum, its, atb)
-		atb.states[key] = gs
-		return gs
+func (atb *ActionTableBuilder) print() {
+	for _, gs := range atb.gsList {
+		atb.logger.Println(fmt.Sprintf("%d:", gs.id))
+		for _, it := range gs.its {
+			itPrintBuilder := new(strings.Builder)
+			itPrintBuilder.WriteString(fmt.Sprintf("%s ->   ", it.GetProduction().GetResult()))
+			for k, v := range it.GetProduction().GetParams() {
+				if it.DotPos() == k {
+					itPrintBuilder.WriteString(".   ")
+				}
+				itPrintBuilder.WriteString(v.ToString())
+				itPrintBuilder.WriteString("   ")
+			}
+
+			itPrintBuilder.WriteString("(")
+
+			for s := range it.GetLookAhead().Elems() {
+				itPrintBuilder.WriteString(s.ToString())
+				itPrintBuilder.WriteString(" ")
+			}
+
+			itPrintBuilder.WriteString(")")
+
+			atb.logger.Println(itPrintBuilder.String())
+		}
 	}
-}
-
-func (atb *ActionTableBuilder) key(its []*item.Item) string {
-	keyList := make([]string, 0)
-	for _, it := range its {
-		keyList = append(keyList, strconv.Itoa(it.Id()))
-	}
-
-	sort.Strings(keyList)
-
-	return strings.Join(keyList, " | ")
 }

@@ -23,22 +23,32 @@ func NewGrammarState(id int, its []*item.Item, atb *ActionTableBuilder) *Grammar
 	}
 }
 
-func (gs *GrammarState) createTransition() {
-	if gs.transitionDone {
+func (state *GrammarState) createTransition() {
+	if state.transitionDone {
 		return
 	}
-	gs.transitionDone = true
+	state.transitionDone = true
 
-	gs.makeClosure()
+	state.makeClosure()
+
+	state.makePartition()
+
+	state.makeTransition()
+
+	state.extendTransition()
 }
 
-func (gs *GrammarState) makeClosure() {
-	gs.closureSet = item.NewItemSet()
-	gs.closureSet.AddList(gs.its)
+func (state *GrammarState) makeClosure() {
+	state.closureSet = item.NewItemSet()
+	state.closureSet.AddList(state.its)
+
+	for _, it := range state.its {
+		state.atb.logger.Println(it.DotPos())
+	}
 
 	itemStack := item.NewItemStack()
 
-	for _, it := range gs.its {
+	for _, it := range state.its {
 		itemStack.Push(it)
 	}
 
@@ -52,73 +62,66 @@ func (gs *GrammarState) makeClosure() {
 			continue
 		}
 
-		closures := gs.atb.itm.GetItems(s)
+		state.atb.logger.Println(s, it.DotPos())
+		closures := state.atb.itm.GetItems(s)
 
-		lookAhead := gs.atb.itm.ComputeFirstSetOfBetaAndC(it, gs.atb.fs)
+		lookAhead := it.ComputeFirstSetOfBetaAndC(state.atb.fs)
 
 		for _, oldItem := range closures {
 			newItem := oldItem.CloneWithLookAhead(lookAhead)
-
-			if !gs.closureSet.Exists(newItem) {
-				gs.closureSet.Add(newItem)
+			if !state.closureSet.Exists(newItem) {
+				state.closureSet.Add(newItem)
 
 				itemStack.Push(newItem)
 
-				gs.removeRedundantProduction(newItem)
+				state.removeRedundantProduction(newItem)
 			}
 		}
 	}
 }
 
-func (gs *GrammarState) removeRedundantProduction(newItem *item.Item) {
-	for it := range gs.closureSet.Elems() {
+func (state *GrammarState) removeRedundantProduction(newItem *item.Item) {
+	for it := range state.closureSet.Elems() {
 		if newItem.IsCoverUp(it) {
-			gs.closureSet.Delete(it)
+			state.closureSet.Delete(it)
 		}
 	}
 }
 
-func (gs *GrammarState) makePartition() {
-	gs.partition = make(map[symbol.Symbol][]*item.Item)
-	for it := range gs.closureSet.Elems() {
+func (state *GrammarState) makePartition() {
+	state.partition = make(map[symbol.Symbol][]*item.Item)
+	for it := range state.closureSet.Elems() {
 		if !it.DotEnd() {
-			gs.partition[it.GetDotSymbol()] = append(gs.partition[it.GetDotSymbol()], it)
-		} else {
-			gs.its = append(gs.its, it)
+			state.partition[it.GetDotSymbol()] = append(state.partition[it.GetDotSymbol()], it)
 		}
 	}
 }
 
-func (gs *GrammarState) makeTransition() {
-	var newGs *GrammarState
-	var newGsIts []*item.Item
+func (state *GrammarState) makeTransition() {
+	state.transition = make(map[symbol.Symbol]*GrammarState)
 
-	gs.transition = make(map[symbol.Symbol]*GrammarState)
-
-	for symbol, its := range gs.partition {
-		newGsIts = []*item.Item{}
+	for symbol, its := range state.partition {
+		newStateItems := make([]*item.Item, 0, len(its))
 		for _, it := range its {
-			newGsIts = append(newGsIts, it.DotForward())
+			newStateItems = append(newStateItems, it.DotForward())
 		}
 
-		newGs = gs.atb.getGrammarState(newGsIts)
-		gs.transition[symbol] = newGs
+		newState := state.atb.newGrammarState(newStateItems)
+		state.transition[symbol] = newState
 	}
-
-	gs.transitionDone = true
 }
 
-func (gs *GrammarState) extendTransition() {
-	for _, childGs := range gs.transition {
-		if !childGs.transitionDone {
-			childGs.createTransition()
+func (state *GrammarState) extendTransition() {
+	for _, childState := range state.transition {
+		if !childState.transitionDone {
+			childState.createTransition()
 		}
 	}
 }
 
-func (gs *GrammarState) makeReduce() map[symbol.Symbol]*Action {
+func (state *GrammarState) makeReduce() map[symbol.Symbol]*Action {
 	m := make(map[symbol.Symbol]*Action)
-	for _, it := range gs.its {
+	for _, it := range state.its {
 		if it.CanBeReduce() {
 			for s := range it.GetLookAhead().Elems() {
 				m[s] = NewReduceAction(it.GetProduction().GetCallback(), it.GetProduction().ParamsLen())
