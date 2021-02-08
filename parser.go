@@ -26,24 +26,29 @@ func newSyntaxErr(unexpected, expecting lexer.Token) error {
 }
 
 type Parser struct {
-	logger log.Logger
-	at     *lr.ActionTable
-	itm    *item.Manager
-	fsb    *first_set.Builder
+	at  *lr.ActionTable
+	itm *item.Manager
+	fsb *first_set.Builder
 }
 
 func NewParser(logger log.Logger) *Parser {
 	return &Parser{
-		logger: logger,
-		itm:    item.NewManager(),
-		fsb:    first_set.NewBuilder(),
+		itm: item.NewManager(),
+		fsb: first_set.NewBuilder(),
 	}
 }
 
 // Register production to this parser
-func (parser *Parser) RegProduction(result symbol.Symbol, params []symbol.Symbol, callback item.Callback) {
+func (parser *Parser) RegProduction(result symbol.Symbol, params []symbol.Symbol, callback item.Callback) (err error) {
+	if result.IsTerminal() {
+		err = errors.New("result cannot be a terminator")
+		return
+	}
+
 	parser.itm.RegProduction(result, params, callback)
 	parser.fsb.Reg(result, params)
+
+	return
 }
 
 func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
@@ -58,7 +63,7 @@ func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
 	}
 
 	// build action table
-	parser.at, err = lr.NewActionTableBuilder(parser.itm, fs, parser.logger).Build(goal)
+	parser.at, err = lr.NewActionTableBuilder(parser.itm, fs).Build(goal)
 	if err != nil {
 		return
 	}

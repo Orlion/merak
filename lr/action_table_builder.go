@@ -3,11 +3,9 @@ package lr
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/Orlion/merak/first_set"
 	"github.com/Orlion/merak/item"
-	"github.com/Orlion/merak/log"
 	"github.com/Orlion/merak/symbol"
 )
 
@@ -15,13 +13,11 @@ type ActionTableBuilder struct {
 	gsList      []*GrammarState
 	itm         *item.Manager
 	fs          *first_set.FirstSet
-	logger      log.Logger
 	lastStateId int
 }
 
-func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet, logger log.Logger) *ActionTableBuilder {
+func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet) *ActionTableBuilder {
 	return &ActionTableBuilder{
-		logger: logger,
 		itm:    itm,
 		fs:     fs,
 		gsList: make([]*GrammarState, 0),
@@ -56,7 +52,11 @@ func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err e
 				err = errors.New("shift conflict")
 				return
 			}
-			jump[s] = NewShiftAction(childGs.id)
+			if 0 == childGs.id {
+				jump[s] = NewAcceptAction()
+			} else {
+				jump[s] = NewShiftAction(childGs.id)
+			}
 		}
 
 		reduceMap := gs.makeReduce()
@@ -76,28 +76,9 @@ func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err e
 
 func (atb *ActionTableBuilder) print() {
 	for _, gs := range atb.gsList {
-		atb.logger.Println(fmt.Sprintf("%d:", gs.id))
+		fmt.Printf("%d:\n", gs.id)
 		for _, it := range gs.its {
-			itPrintBuilder := new(strings.Builder)
-			itPrintBuilder.WriteString(fmt.Sprintf("%s ->   ", it.GetProduction().GetResult()))
-			for k, v := range it.GetProduction().GetParams() {
-				if it.DotPos() == k {
-					itPrintBuilder.WriteString(".   ")
-				}
-				itPrintBuilder.WriteString(v.ToString())
-				itPrintBuilder.WriteString("   ")
-			}
-
-			itPrintBuilder.WriteString("(")
-
-			for s := range it.GetLookAhead().Elems() {
-				itPrintBuilder.WriteString(s.ToString())
-				itPrintBuilder.WriteString(" ")
-			}
-
-			itPrintBuilder.WriteString(")")
-
-			atb.logger.Println(itPrintBuilder.String())
+			fmt.Println(it.ToString())
 		}
 	}
 }

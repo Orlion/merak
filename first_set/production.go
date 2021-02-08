@@ -2,20 +2,10 @@ package first_set
 
 import "github.com/Orlion/merak/symbol"
 
-type ProductionState int8
-
-const (
-	ProductionStateNotRun ProductionState = iota + 1
-	ProductionStateRunning
-	ProductionStateDone
-)
-
 type Production struct {
 	result     symbol.Symbol
 	paramsList [][]symbol.Symbol
 	firstSet   *symbol.Set
-	nullable   bool
-	state      ProductionState
 }
 
 func NewProduction(result symbol.Symbol, params []symbol.Symbol) *Production {
@@ -48,12 +38,4 @@ func (p *Production) GetParamsList() [][]symbol.Symbol {
 
 func (p *Production) GetFirstSet() *symbol.Set {
 	return p.firstSet
-}
-
-func (p *Production) GetState() ProductionState {
-	return p.state
-}
-
-func (p *Production) SetState(state ProductionState) {
-	p.state = state
 }

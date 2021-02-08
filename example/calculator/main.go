@@ -88,7 +88,7 @@ func (sv *SymbolValue) Symbol() symbol.Symbol {
 type Symbol string
 
 func (s Symbol) IsTerminal() bool {
-	return string(s)[0] >= 'A' && string(s)[0] <= 'Z'
+	return string(s)[0] < 'A' || string(s)[0] > 'Z'
 }
 
 func (s Symbol) ToString() string {
@@ -141,12 +141,12 @@ func initParser() *merak.Parser {
 	parser := merak.NewParser(log.New(os.Stderr, "", 0))
 	/*
 		GOAL -> EXPR eoi
-		EXPR -> term
-			  | EXPR + term
-			  | EXPR - term
+		EXPR -> TERM
+			  | EXPR + TERM
+			  | EXPR - TERM
 		TERM -> FACTOR
-			  | term * FACTOR
-			  | term / FACTOR
+			  | TERM * FACTOR
+			  | TERM / FACTOR
 		FACTOR -> number
 		        | '(' EXPR ')'
 	*/

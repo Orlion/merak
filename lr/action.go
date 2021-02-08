@@ -27,12 +27,14 @@ func NewReduceAction(callback item.Callback, paramsNum int) *Action {
 	action := new(Action)
 	action.callback = callback
 	action.paramsNum = paramsNum
+	action.t = ActionReduce
 	return action
 }
 
 func NewShiftAction(state int) *Action {
 	action := new(Action)
 	action.state = state
+	action.t = ActionShift
 	return action
 }
 
@@ -55,4 +57,10 @@ type ShiftAction struct {
 
 func (action *ShiftAction) State() int {
 	return action.state
+}
+
+func NewAcceptAction() *Action {
+	return &Action{
+		t: ActionAccept,
+	}
 }

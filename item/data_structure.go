@@ -1,38 +1,66 @@
 package item
 
-import "github.com/Orlion/merak/data_structure"
+import (
+	"github.com/Orlion/merak/data_structure"
+)
 
-type ItemSet struct {
-	elems map[*Item]struct{}
+type Set struct {
+	elems []*Item // TODO: redis intset
 }
 
-func NewItemSet() *ItemSet {
-	return &ItemSet{
-		elems: make(map[*Item]struct{}),
+func NewSet() *Set {
+	return &Set{
+		elems: make([]*Item, 0),
 	}
 }
 
-func (s *ItemSet) Add(it *Item) {
-	s.elems[it] = struct{}{}
+func (set *Set) Add(it *Item) bool {
+	if !set.Exists(it) {
+		set.elems = append(set.elems, it)
+		return true
+	}
+
+	return false
 }
 
-func (s *ItemSet) AddList(its []*Item) {
+func (set *Set) AddList(its []*Item) (addNum int) {
 	for _, it := range its {
-		s.elems[it] = struct{}{}
+		if set.Add(it) {
+			addNum++
+		}
 	}
+
+	return
 }
 
-func (s *ItemSet) Exists(it *Item) bool {
-	_, exists := s.elems[it]
-	return exists
+func (set *Set) Exists(it *Item) bool {
+	return set.index(it) > -1
 }
 
-func (s *ItemSet) Delete(it *Item) {
-	delete(s.elems, it)
+func (set *Set) index(it *Item) int {
+	i := -1
+
+	for k, elem := range set.elems {
+		if elem != nil && elem.Equals(it) {
+			i = k
+			break
+		}
+	}
+
+	return i
 }
 
-func (s *ItemSet) Elems() map[*Item]struct{} {
-	return s.elems
+func (set *Set) Delete(it *Item) bool {
+	if i := set.index(it); i > -1 {
+		set.elems[i] = nil
+		return true
+	}
+
+	return false
+}
+
+func (set *Set) Elems() []*Item {
+	return set.elems
 }
 
 type ItemStack struct {

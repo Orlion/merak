@@ -16,11 +16,6 @@ type Production struct {
 }
 
 func NewProduction(id int, result symbol.Symbol, params []symbol.Symbol, callback Callback) (production *Production, err error) {
-	if !result.IsTerminal() {
-		err = errors.New("result must be a terminal")
-		return
-	}
-
 	if callback == nil {
 		err = errors.New("callback cannot be a nil")
 		return

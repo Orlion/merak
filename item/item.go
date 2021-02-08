@@ -1,6 +1,9 @@
 package item
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/Orlion/merak/first_set"
 	"github.com/Orlion/merak/symbol"
 )
@@ -46,15 +49,15 @@ func (it *Item) CloneWithLookAhead(lookAhead *symbol.Set) *Item {
 }
 
 func (it *Item) IsCoverUp(oldItem *Item) bool {
-	if it.productionEquals(oldItem) && it.lookAheadCompare(oldItem) > 0 {
+	if it.Equals(oldItem) && it.lookAheadCompare(oldItem) >= 0 {
 		return true
 	}
 
 	return false
 }
 
-func (it *Item) productionEquals(input *Item) bool {
-	return it.production.GetId() == input.production.GetId()
+func (it *Item) Equals(input *Item) bool {
+	return it.production.GetId() == input.production.GetId() && it.DotPos() == input.DotPos()
 }
 
 func (it *Item) lookAheadCompare(input *Item) int {
@@ -102,4 +105,27 @@ func (it *Item) ComputeFirstSetOfBetaAndC(fs *first_set.FirstSet) (firstSet *sym
 	}
 
 	return
+}
+
+func (it *Item) ToString() string {
+	itStrBuilder := new(strings.Builder)
+	itStrBuilder.WriteString(fmt.Sprintf("pid: %d; %s ->   ", it.GetProduction().GetId(), it.GetProduction().GetResult()))
+	for k, v := range it.GetProduction().GetParams() {
+		if it.DotPos() == k {
+			itStrBuilder.WriteString(".   ")
+		}
+		itStrBuilder.WriteString(v.ToString())
+		itStrBuilder.WriteString("   ")
+	}
+
+	itStrBuilder.WriteString("(")
+
+	for s := range it.GetLookAhead().Elems() {
+		itStrBuilder.WriteString(s.ToString())
+		itStrBuilder.WriteString(" ")
+	}
+
+	itStrBuilder.WriteString(")")
+
+	return itStrBuilder.String()
 }

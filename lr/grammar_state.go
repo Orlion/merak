@@ -9,7 +9,7 @@ type GrammarState struct {
 	its            []*item.Item
 	partition      map[symbol.Symbol][]*item.Item
 	transition     map[symbol.Symbol]*GrammarState
-	closureSet     *item.ItemSet
+	closureSet     *item.Set
 	atb            *ActionTableBuilder
 	id             int
 	transitionDone bool
@@ -39,12 +39,8 @@ func (state *GrammarState) createTransition() {
 }
 
 func (state *GrammarState) makeClosure() {
-	state.closureSet = item.NewItemSet()
+	state.closureSet = item.NewSet()
 	state.closureSet.AddList(state.its)
-
-	for _, it := range state.its {
-		state.atb.logger.Println(it.DotPos())
-	}
 
 	itemStack := item.NewItemStack()
 
@@ -57,21 +53,19 @@ func (state *GrammarState) makeClosure() {
 		if it.DotEnd() {
 			continue
 		}
+
 		s := it.GetDotSymbol()
 		if s.IsTerminal() {
 			continue
 		}
 
-		state.atb.logger.Println(s, it.DotPos())
 		closures := state.atb.itm.GetItems(s)
 
 		lookAhead := it.ComputeFirstSetOfBetaAndC(state.atb.fs)
 
 		for _, oldItem := range closures {
 			newItem := oldItem.CloneWithLookAhead(lookAhead)
-			if !state.closureSet.Exists(newItem) {
-				state.closureSet.Add(newItem)
-
+			if state.closureSet.Add(newItem) {
 				itemStack.Push(newItem)
 
 				state.removeRedundantProduction(newItem)
@@ -81,8 +75,8 @@ func (state *GrammarState) makeClosure() {
 }
 
 func (state *GrammarState) removeRedundantProduction(newItem *item.Item) {
-	for it := range state.closureSet.Elems() {
-		if newItem.IsCoverUp(it) {
+	for _, it := range state.closureSet.Elems() {
+		if it != nil && it != newItem && newItem.IsCoverUp(it) {
 			state.closureSet.Delete(it)
 		}
 	}
@@ -90,7 +84,7 @@ func (state *GrammarState) removeRedundantProduction(newItem *item.Item) {
 
 func (state *GrammarState) makePartition() {
 	state.partition = make(map[symbol.Symbol][]*item.Item)
-	for it := range state.closureSet.Elems() {
+	for _, it := range state.closureSet.Elems() {
 		if !it.DotEnd() {
 			state.partition[it.GetDotSymbol()] = append(state.partition[it.GetDotSymbol()], it)
 		}
