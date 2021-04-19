@@ -15,7 +15,7 @@ func NewManager() *Manager {
 	}
 }
 
-func (m *Manager) RegProduction(result symbol.Symbol, params []symbol.Symbol, callback Callback) (err error) {
+func (m *Manager) Reg(result symbol.Symbol, params []symbol.Symbol, callback Callback) (err error) {
 	it, err := NewProduction(m.lastPid, result, params, callback)
 	if err != nil {
 		return

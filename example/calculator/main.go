@@ -3,9 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"log"
-	"os"
-	"strconv"
 
 	"github.com/Orlion/merak"
 	"github.com/Orlion/merak/lexer"
@@ -41,7 +38,7 @@ func NewToken(text string, tokenType TokenType, col int) *Token {
 }
 
 func (t *Token) ToString() string {
-	return strconv.Itoa(int(t.Type))
+	return t.Text
 }
 
 func (t *Token) Filename() string {
@@ -138,7 +135,7 @@ func main() {
 }
 
 func initParser() *merak.Parser {
-	parser := merak.NewParser(log.New(os.Stderr, "", 0))
+	parser := merak.NewParser()
 	/*
 		GOAL -> EXPR eoi
 		EXPR -> TERM

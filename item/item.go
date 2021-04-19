@@ -118,14 +118,14 @@ func (it *Item) ToString() string {
 		itStrBuilder.WriteString("   ")
 	}
 
-	itStrBuilder.WriteString("(")
+	itStrBuilder.WriteString("[")
 
 	for s := range it.GetLookAhead().Elems() {
 		itStrBuilder.WriteString(s.ToString())
 		itStrBuilder.WriteString(" ")
 	}
 
-	itStrBuilder.WriteString(")")
+	itStrBuilder.WriteString("]")
 
 	return itStrBuilder.String()
 }

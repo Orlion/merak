@@ -1,7 +1,7 @@
 package item
 
 import (
-	"github.com/Orlion/merak/data_structure"
+	"github.com/Orlion/merak/container"
 )
 
 type Set struct {
@@ -64,12 +64,12 @@ func (set *Set) Elems() []*Item {
 }
 
 type ItemStack struct {
-	stack *data_structure.Stack
+	stack *container.Stack
 }
 
 func NewItemStack() *ItemStack {
 	return &ItemStack{
-		stack: data_structure.NewStack(),
+		stack: container.NewStack(),
 	}
 }
 

@@ -4,11 +4,10 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Orlion/merak/data_structure"
+	"github.com/Orlion/merak/container"
 	"github.com/Orlion/merak/first_set"
 	"github.com/Orlion/merak/item"
 	"github.com/Orlion/merak/lexer"
-	"github.com/Orlion/merak/log"
 	"github.com/Orlion/merak/lr"
 	"github.com/Orlion/merak/symbol"
 )
@@ -31,7 +30,7 @@ type Parser struct {
 	fsb *first_set.Builder
 }
 
-func NewParser(logger log.Logger) *Parser {
+func NewParser() *Parser {
 	return &Parser{
 		itm: item.NewManager(),
 		fsb: first_set.NewBuilder(),
@@ -45,7 +44,7 @@ func (parser *Parser) RegProduction(result symbol.Symbol, params []symbol.Symbol
 		return
 	}
 
-	parser.itm.RegProduction(result, params, callback)
+	parser.itm.Reg(result, params, callback)
 	parser.fsb.Reg(result, params)
 
 	return
@@ -85,6 +84,8 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 		return
 	}
 
+	parser.at.Print()
+
 	lexerDelegator := lexer.NewLexerDelegator(l)
 
 	token, err := lexerDelegator.Next()
@@ -92,9 +93,9 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 		return
 	}
 
-	stateStack := data_structure.NewStack()
-	valueStack := data_structure.NewStack()
-	symbolStack := data_structure.NewStack()
+	stateStack := container.NewStack()
+	valueStack := container.NewStack()
+	symbolStack := container.NewStack()
 	stateStack.Push(0)
 
 	for {

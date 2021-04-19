@@ -2,6 +2,7 @@ package lr
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/Orlion/merak/symbol"
 )
@@ -34,4 +35,22 @@ func (at *ActionTable) Action(state int, s symbol.Symbol) (action *Action, err e
 	}
 
 	return
+}
+
+func (at *ActionTable) Print() {
+	for state, cm := range at.m {
+		fmt.Println("====================================")
+		fmt.Printf("%d  =>  ", state)
+		for s, action := range cm {
+			fmt.Printf("%s / ", s)
+			switch action.Type() {
+			case ActionAccept:
+				fmt.Printf("accept\n")
+			case ActionReduce:
+				fmt.Printf("reduce\n")
+			case ActionShift:
+				fmt.Printf("shift-%d\n", action.State())
+			}
+		}
+	}
 }
