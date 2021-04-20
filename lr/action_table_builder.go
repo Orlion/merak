@@ -18,9 +18,10 @@ type ActionTableBuilder struct {
 
 func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet) *ActionTableBuilder {
 	return &ActionTableBuilder{
-		itm:    itm,
-		fs:     fs,
-		gsList: make([]*GrammarState, 0),
+		itm:         itm,
+		fs:          fs,
+		gsList:      make([]*GrammarState, 0),
+		lastStateId: 1,
 	}
 }
 

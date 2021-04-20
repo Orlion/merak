@@ -20,9 +20,7 @@ func NewBuilder() *Builder {
 
 func (b *Builder) Reg(s symbol.Symbol, params []symbol.Symbol) {
 	if p, exists := b.m[s]; exists {
-		if !s.IsTerminal() {
-			p.AddParams(params)
-		}
+		p.AddParams(params)
 	} else {
 		b.m[s] = NewProduction(s, params)
 	}
@@ -60,7 +58,7 @@ func (b *Builder) Build() (fs *FirstSet, err error) {
 
 func (b *Builder) genProductionFirstSet(p *Production) {
 	if p.GetResult().IsTerminal() {
-		// If it is a terminator then it is its own FirstSet element
+		// If p.result is a terminator then it is its own FirstSet element
 		if p.AddFirstSet(p.GetResult()) {
 			b.pass = true
 		}
