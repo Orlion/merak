@@ -41,7 +41,7 @@ func (set *Set) index(it *Item) int {
 	i := -1
 
 	for k, elem := range set.elems {
-		if elem != nil && elem.Equals(it) {
+		if elem.Equals(it) {
 			i = k
 			break
 		}
@@ -52,7 +52,7 @@ func (set *Set) index(it *Item) int {
 
 func (set *Set) Delete(it *Item) bool {
 	if i := set.index(it); i > -1 {
-		set.elems[i] = nil
+		set.elems = append(set.elems[0:i], set.elems[i+1:]...)
 		return true
 	}
 

@@ -18,10 +18,9 @@ type ActionTableBuilder struct {
 
 func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet) *ActionTableBuilder {
 	return &ActionTableBuilder{
-		itm:         itm,
-		fs:          fs,
-		gsList:      make([]*GrammarState, 0),
-		lastStateId: 1,
+		itm:    itm,
+		fs:     fs,
+		gsList: make([]*GrammarState, 0),
 	}
 }
 
@@ -41,8 +40,14 @@ func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err e
 
 	gs := atb.newGrammarState(its)
 	gs.createTransition()
-	// print gs
-	atb.print()
+
+	for _, gs := range atb.gsList {
+		fmt.Println("\n==================\n")
+		fmt.Printf("%d: \n", gs.id)
+		for _, it := range gs.its {
+			fmt.Println(it.ToString())
+		}
+	}
 
 	at = NewActionTable()
 
@@ -73,13 +78,4 @@ func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err e
 	}
 
 	return
-}
-
-func (atb *ActionTableBuilder) print() {
-	for _, gs := range atb.gsList {
-		fmt.Printf("%d:\n", gs.id)
-		for _, it := range gs.its {
-			fmt.Println(it.ToString())
-		}
-	}
 }

@@ -41,15 +41,19 @@ func (it *Item) GetDotSymbol() symbol.Symbol {
 	return it.production.GetParam(it.dotPos)
 }
 
-func (it *Item) CloneWithLookAhead(lookAhead *symbol.Set) *Item {
+func (it *Item) Clone() *Item {
 	newItem := NewItem(it.production, it.dotPos)
-	newItem.lookAhead.AddAll(lookAhead)
-
+	newItem.lookAhead.AddAll(it.lookAhead)
 	return newItem
 }
 
-func (it *Item) IsCoverUp(oldItem *Item) bool {
-	if it.Equals(oldItem) && it.lookAheadCompare(oldItem) >= 0 {
+func (it *Item) SetLookAhead(lookAhead *symbol.Set) {
+	it.lookAhead = symbol.NewSymbolSet()
+	it.lookAhead.AddAll(lookAhead)
+}
+
+func (it *Item) CoverUp(oldItem *Item) bool {
+	if it.Equals(oldItem) && it.lookAheadComparing(oldItem) > 0 {
 		return true
 	}
 
@@ -60,7 +64,7 @@ func (it *Item) Equals(input *Item) bool {
 	return it.production.GetId() == input.production.GetId() && it.DotPos() == input.DotPos()
 }
 
-func (it *Item) lookAheadCompare(input *Item) int {
+func (it *Item) lookAheadComparing(input *Item) int {
 	if len(it.lookAhead.Elems()) < len(input.lookAhead.Elems()) {
 		return -1
 	}

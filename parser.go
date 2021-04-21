@@ -84,8 +84,6 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 		return
 	}
 
-	parser.at.Print()
-
 	lexerDelegator := lexer.NewLexerDelegator(l)
 
 	token, err := lexerDelegator.Next()

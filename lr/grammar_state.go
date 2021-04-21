@@ -64,7 +64,8 @@ func (state *GrammarState) makeClosure() {
 		lookAhead := it.ComputeFirstSetOfBetaAndC(state.atb.fs)
 
 		for _, oldItem := range closures {
-			newItem := oldItem.CloneWithLookAhead(lookAhead)
+			newItem := oldItem.Clone()
+			newItem.SetLookAhead(lookAhead)
 			if state.closureSet.Add(newItem) {
 				itemStack.Push(newItem)
 
@@ -76,7 +77,7 @@ func (state *GrammarState) makeClosure() {
 
 func (state *GrammarState) removeRedundantProduction(newItem *item.Item) {
 	for _, it := range state.closureSet.Elems() {
-		if it != nil && it != newItem && newItem.IsCoverUp(it) {
+		if it != newItem && newItem.CoverUp(it) {
 			state.closureSet.Delete(it)
 		}
 	}
