@@ -70,10 +70,9 @@ func (state *GrammarState) makeClosure() {
 		for _, oldItem := range closures {
 			newItem := oldItem.Clone()
 			newItem.SetLookAhead(lookAhead)
-			if state.AddClosureSetItem(newItem) {
+			if state.closureSet.Add(newItem) {
 				itemStack.Push(newItem)
-
-				//state.removeRedundantProduction(newItem)
+				state.removeRedundantProduction(newItem)
 			}
 		}
 	}
@@ -85,18 +84,6 @@ func (state *GrammarState) removeRedundantProduction(newItem *item.Item) {
 			state.closureSet.Delete(it)
 		}
 	}
-}
-
-func (state *GrammarState) AddClosureSetItem(newItem *item.Item) bool {
-	var b bool
-	for _, it := range state.closureSet.Elems() {
-		if it != newItem && newItem.CoverUp(it) {
-			state.closureSet.Delete(it)
-			b = true
-		}
-	}
-
-	return b
 }
 
 func (state *GrammarState) makePartition() {

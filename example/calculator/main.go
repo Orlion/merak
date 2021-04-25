@@ -123,6 +123,14 @@ func (l *Lexer) Next() (lexer.Token, error) {
 	}
 }
 
+type Value struct {
+	symbol symbol.Symbol
+}
+
+func (v *Value) Symbol() symbol.Symbol {
+	return v.symbol
+}
+
 func main() {
 	parser := initParser()
 
@@ -148,19 +156,27 @@ func initParser() *merak.Parser {
 		        | '(' EXPR ')'
 	*/
 	parser.RegProduction(SymbolFACTOR, []symbol.Symbol{SymbolNumber}, func(params ...symbol.Value) symbol.Value {
-		return nil
+		return &Value{
+			symbol: SymbolFACTOR,
+		}
 	})
 
 	parser.RegProduction(SymbolFACTOR, []symbol.Symbol{SymbolLp, SymbolNumber, SymbolRp}, func(params ...symbol.Value) symbol.Value {
-		return nil
+		return &Value{
+			symbol: SymbolFACTOR,
+		}
 	})
 
 	parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
-		return nil
+		return &Value{
+			symbol: SymbolTERM,
+		}
 	})
 
 	parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolTERM, SymbolMul, SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
-		return nil
+		return &Value{
+			symbol: SymbolTERM,
+		}
 	})
 
 	// parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolTERM, SymbolDiv, SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
@@ -168,11 +184,15 @@ func initParser() *merak.Parser {
 	// })
 
 	parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolTERM}, func(params ...symbol.Value) symbol.Value {
-		return nil
+		return &Value{
+			symbol: SymbolEXPR,
+		}
 	})
 
 	parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolEXPR, SymbolAdd, SymbolTERM}, func(params ...symbol.Value) symbol.Value {
-		return nil
+		return &Value{
+			symbol: SymbolEXPR,
+		}
 	})
 
 	// parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolEXPR, SymbolSub, SymbolTERM}, func(params ...symbol.Value) symbol.Value {
@@ -180,7 +200,9 @@ func initParser() *merak.Parser {
 	// })
 
 	parser.RegProduction(SymbolGOAL, []symbol.Symbol{SymbolEXPR, SymbolEoi}, func(params ...symbol.Value) symbol.Value {
-		return nil
+		return &Value{
+			symbol: SymbolGOAL,
+		}
 	})
 
 	return parser

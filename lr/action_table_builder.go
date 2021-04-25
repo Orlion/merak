@@ -35,7 +35,7 @@ FindGsLoop:
 		for _, it := range gs.its {
 			find := false
 			for _, inputIt := range its {
-				if it.Equals(inputIt) && it.LookAheadComparing(inputIt) == 0 {
+				if it.Equals(inputIt) {
 					find = true
 					break
 				}

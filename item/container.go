@@ -59,8 +59,16 @@ func (set *Set) Delete(it *Item) bool {
 	return false
 }
 
+func (set *Set) DeleteByIndex(i int) {
+	set.elems = append(set.elems[0:i], set.elems[i+1:]...)
+}
+
 func (set *Set) Elems() []*Item {
 	return set.elems
+}
+
+func (set *Set) DoAdd(it *Item) {
+	set.elems = append(set.elems, it)
 }
 
 type ItemStack struct {

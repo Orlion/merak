@@ -53,7 +53,7 @@ func (it *Item) SetLookAhead(lookAhead *symbol.Set) {
 }
 
 func (it *Item) CoverUp(oldItem *Item) bool {
-	if it.Equals(oldItem) && it.LookAheadComparing(oldItem) > 0 {
+	if it.production.GetId() == oldItem.production.GetId() && it.DotPos() == oldItem.DotPos() && it.LookAheadComparing(oldItem) > 0 {
 		return true
 	}
 
@@ -61,7 +61,7 @@ func (it *Item) CoverUp(oldItem *Item) bool {
 }
 
 func (it *Item) Equals(input *Item) bool {
-	return it.production.GetId() == input.production.GetId() && it.DotPos() == input.DotPos()
+	return it.production.GetId() == input.production.GetId() && it.DotPos() == input.DotPos() && it.LookAheadComparing(input) == 0
 }
 
 func (it *Item) LookAheadComparing(input *Item) int {
