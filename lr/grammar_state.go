@@ -13,13 +13,17 @@ type GrammarState struct {
 	atb            *ActionTableBuilder
 	id             int
 	transitionDone bool
+	fromId         int
+	fromSymbol     symbol.Symbol
 }
 
-func NewGrammarState(id int, its []*item.Item, atb *ActionTableBuilder) *GrammarState {
+func NewGrammarState(id int, its []*item.Item, atb *ActionTableBuilder, fromId int, fromSymbol symbol.Symbol) *GrammarState {
 	return &GrammarState{
-		its: its,
-		atb: atb,
-		id:  id,
+		its:        its,
+		atb:        atb,
+		id:         id,
+		fromId:     fromId,
+		fromSymbol: fromSymbol,
 	}
 }
 
@@ -66,10 +70,10 @@ func (state *GrammarState) makeClosure() {
 		for _, oldItem := range closures {
 			newItem := oldItem.Clone()
 			newItem.SetLookAhead(lookAhead)
-			if state.closureSet.Add(newItem) {
+			if state.AddClosureSetItem(newItem) {
 				itemStack.Push(newItem)
 
-				state.removeRedundantProduction(newItem)
+				//state.removeRedundantProduction(newItem)
 			}
 		}
 	}
@@ -81,6 +85,18 @@ func (state *GrammarState) removeRedundantProduction(newItem *item.Item) {
 			state.closureSet.Delete(it)
 		}
 	}
+}
+
+func (state *GrammarState) AddClosureSetItem(newItem *item.Item) bool {
+	var b bool
+	for _, it := range state.closureSet.Elems() {
+		if it != newItem && newItem.CoverUp(it) {
+			state.closureSet.Delete(it)
+			b = true
+		}
+	}
+
+	return b
 }
 
 func (state *GrammarState) makePartition() {
@@ -101,7 +117,7 @@ func (state *GrammarState) makeTransition() {
 			newStateItems = append(newStateItems, it.DotForward())
 		}
 
-		newState := state.atb.newGrammarState(newStateItems)
+		newState := state.atb.newGrammarState(newStateItems, state.id, symbol)
 		state.transition[symbol] = newState
 	}
 }

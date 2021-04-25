@@ -24,8 +24,30 @@ func NewActionTableBuilder(itm *item.Manager, fs *first_set.FirstSet) *ActionTab
 	}
 }
 
-func (atb *ActionTableBuilder) newGrammarState(its []*item.Item) (gs *GrammarState) {
-	gs = NewGrammarState(atb.lastStateId, its, atb)
+func (atb *ActionTableBuilder) newGrammarState(its []*item.Item, fromId int, fromSymbol symbol.Symbol) (gs *GrammarState) {
+FindGsLoop:
+	// TODO: Improve performance
+	for _, gs := range atb.gsList {
+		if len(gs.its) != len(its) {
+			continue
+		}
+
+		for _, it := range gs.its {
+			find := false
+			for _, inputIt := range its {
+				if it.Equals(inputIt) && it.LookAheadComparing(inputIt) == 0 {
+					find = true
+					break
+				}
+			}
+			if !find {
+				continue FindGsLoop
+			}
+		}
+
+		return gs
+	}
+	gs = NewGrammarState(atb.lastStateId, its, atb, fromId, fromSymbol)
 	atb.lastStateId++
 	atb.gsList = append(atb.gsList, gs)
 	return
@@ -38,12 +60,16 @@ func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err e
 		return
 	}
 
-	gs := atb.newGrammarState(its)
+	gs := atb.newGrammarState(its, -1, nil)
 	gs.createTransition()
 
 	for _, gs := range atb.gsList {
 		fmt.Println("\n==================\n")
-		fmt.Printf("%d: \n", gs.id)
+		if nil == gs.fromSymbol {
+			fmt.Printf("%d: <- nil <- %d\n", gs.id, gs.fromId)
+		} else {
+			fmt.Printf("%d: <- %s <- %d\n", gs.id, gs.fromSymbol.ToString(), gs.fromId)
+		}
 		for _, it := range gs.its {
 			fmt.Println(it.ToString())
 		}

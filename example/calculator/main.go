@@ -140,10 +140,10 @@ func initParser() *merak.Parser {
 		GOAL -> EXPR eoi
 		EXPR -> TERM
 			  | EXPR + TERM
-			  | EXPR - TERM
+			  //| EXPR - TERM
 		TERM -> FACTOR
 			  | TERM * FACTOR
-			  | TERM / FACTOR
+			  //| TERM / FACTOR
 		FACTOR -> number
 		        | '(' EXPR ')'
 	*/
@@ -163,9 +163,9 @@ func initParser() *merak.Parser {
 		return nil
 	})
 
-	parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolTERM, SymbolDiv, SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
-		return nil
-	})
+	// parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolTERM, SymbolDiv, SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
+	// 	return nil
+	// })
 
 	parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolTERM}, func(params ...symbol.Value) symbol.Value {
 		return nil
@@ -175,9 +175,9 @@ func initParser() *merak.Parser {
 		return nil
 	})
 
-	parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolEXPR, SymbolSub, SymbolTERM}, func(params ...symbol.Value) symbol.Value {
-		return nil
-	})
+	// parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolEXPR, SymbolSub, SymbolTERM}, func(params ...symbol.Value) symbol.Value {
+	// 	return nil
+	// })
 
 	parser.RegProduction(SymbolGOAL, []symbol.Symbol{SymbolEXPR, SymbolEoi}, func(params ...symbol.Value) symbol.Value {
 		return nil
