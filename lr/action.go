@@ -8,8 +8,7 @@ import (
 type ActionType int8
 
 const (
-	ActionAccept ActionType = iota + 1
-	ActionReduce
+	ActionReduce ActionType = iota + 1
 	ActionShift
 )
 
@@ -57,10 +56,4 @@ type ShiftAction struct {
 
 func (action *ShiftAction) State() int {
 	return action.state
-}
-
-func NewAcceptAction() *Action {
-	return &Action{
-		t: ActionAccept,
-	}
 }

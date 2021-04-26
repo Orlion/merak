@@ -50,7 +50,7 @@ func (parser *Parser) RegProduction(result symbol.Symbol, params []symbol.Symbol
 	return
 }
 
-func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
+func (parser *Parser) buildActionTable(goal symbol.Symbol, eoi symbol.Symbol) (err error) {
 	if parser.at != nil {
 		return
 	}
@@ -62,7 +62,7 @@ func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
 	}
 
 	// build action table
-	parser.at, err = lr.NewActionTableBuilder(parser.itm, fs).Build(goal)
+	parser.at, err = lr.NewActionTableBuilder(parser.itm, fs).Build(goal, eoi)
 	if err != nil {
 		return
 	}
@@ -71,7 +71,7 @@ func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
 }
 
 // Parse Input
-func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Value, err error) {
+func (parser *Parser) Parse(goal symbol.Symbol, eoi symbol.Symbol, l lexer.Lexer) (result symbol.Value, err error) {
 	var (
 		state              int
 		action             *lr.Action
@@ -80,7 +80,7 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 		currentSymbol      symbol.Symbol
 	)
 
-	err = parser.buildActionTable(goal)
+	err = parser.buildActionTable(goal, eoi)
 	if err != nil {
 		return
 	}
@@ -99,13 +99,16 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 	symbolStack := container.NewStack()
 	stateStack.Push(0)
 
+Loop:
 	for {
 		state = stateStack.Top().(int)
-
+		if state == 0 && currentSymbol == goal {
+			break Loop
+		}
 		action, err = parser.at.Action(state, currentSymbol)
 		if err != nil {
 			err = newSyntaxErr(token, nil)
-			break
+			break Loop
 		}
 
 		switch action.Type() {
@@ -135,14 +138,12 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 			if currentSymbol.IsTerminal() {
 				valueStack.Push(currentSymbolValue)
 				if token, err = lexerDelegator.Next(); err != nil {
-					break
+					break Loop
 				}
 			}
 
 			currentSymbolValue = token.ToSymbol()
 			currentSymbol = currentSymbolValue.Symbol()
-		case lr.ActionAccept:
-			break
 		}
 	}
 

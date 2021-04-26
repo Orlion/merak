@@ -2,8 +2,6 @@ package lr
 
 import (
 	"errors"
-	"fmt"
-
 	"github.com/Orlion/merak/first_set"
 	"github.com/Orlion/merak/item"
 	"github.com/Orlion/merak/symbol"
@@ -53,27 +51,25 @@ FindGsLoop:
 	return
 }
 
-func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err error) {
+func (atb *ActionTableBuilder) Build(goal symbol.Symbol, eoi symbol.Symbol) (at *ActionTable, err error) {
 	its := atb.itm.GetItems(goal)
-	if len(its) < 1 {
+	if len(its) > 1 {
 		err = errors.New("goal has no any productions")
 		return
 	}
 
+	for _, it := range its {
+		if it.GetProduction().ParamsLen() != 1 {
+			err = errors.New("goal's production can only be one parameter")
+			return
+		}
+		lookAhead := symbol.NewSymbolSet()
+		lookAhead.Add(eoi)
+		it.SetLookAhead(lookAhead)
+	}
+
 	gs := atb.newGrammarState(its, -1, nil)
 	gs.createTransition()
-
-	for _, gs := range atb.gsList {
-		fmt.Println("\n==================\n")
-		if nil == gs.fromSymbol {
-			fmt.Printf("%d: <- nil <- %d\n", gs.id, gs.fromId)
-		} else {
-			fmt.Printf("%d: <- %s <- %d\n", gs.id, gs.fromSymbol.ToString(), gs.fromId)
-		}
-		for _, it := range gs.its {
-			fmt.Println(it.ToString())
-		}
-	}
 
 	at = NewActionTable()
 
@@ -84,11 +80,8 @@ func (atb *ActionTableBuilder) Build(goal symbol.Symbol) (at *ActionTable, err e
 				err = errors.New("shift conflict")
 				return
 			}
-			if 0 == childGs.id {
-				jump[s] = NewAcceptAction()
-			} else {
-				jump[s] = NewShiftAction(childGs.id)
-			}
+
+			jump[s] = NewShiftAction(childGs.id)
 		}
 
 		reduceMap := gs.makeReduce()

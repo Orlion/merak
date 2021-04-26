@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/Orlion/merak"
 	"github.com/Orlion/merak/lexer"
@@ -53,7 +54,7 @@ func (t *Token) Col() int {
 	return t.col
 }
 
-func (t *Token) ToSymbol() symbol.Value {
+func (t *Token) Symbol() symbol.Symbol {
 	m := map[TokenType]Symbol{
 		TokenEoi:    SymbolEoi,
 		TokenAdd:    SymbolAdd,
@@ -65,21 +66,11 @@ func (t *Token) ToSymbol() symbol.Value {
 		TokenNumber: SymbolNumber,
 	}
 
-	return NewSymbolValue(m[t.Type])
+	return m[t.Type]
 }
 
-type SymbolValue struct {
-	s symbol.Symbol
-}
-
-func NewSymbolValue(s symbol.Symbol) *SymbolValue {
-	return &SymbolValue{
-		s: s,
-	}
-}
-
-func (sv *SymbolValue) Symbol() symbol.Symbol {
-	return sv.s
+func (t *Token) ToSymbol() symbol.Value {
+	return t
 }
 
 type Symbol string
@@ -123,23 +114,62 @@ func (l *Lexer) Next() (lexer.Token, error) {
 	}
 }
 
-type Value struct {
-	symbol symbol.Symbol
+type Goal struct {
+	expr *Expr
 }
 
-func (v *Value) Symbol() symbol.Symbol {
-	return v.symbol
+func (v *Goal) Symbol() symbol.Symbol {
+	return SymbolGOAL
+}
+
+type Expr struct {
+	expr  *Expr
+	term  *Term
+	isAdd bool
+}
+
+func (v *Expr) Symbol() symbol.Symbol {
+	return SymbolEXPR
+}
+
+type Term struct {
+	term   *Term
+	factor *Factor
+	isMul  bool
+}
+
+func (v *Term) Symbol() symbol.Symbol {
+	return SymbolTERM
+}
+
+type Factor struct {
+	expr   *Expr
+	number int64
+}
+
+func (v *Factor) Symbol() symbol.Symbol {
+	return SymbolFACTOR
 }
 
 func main() {
 	parser := initParser()
 
 	l := &Lexer{
-		tokens: []*Token{NewToken("123", TokenNumber, 1), NewToken("+", TokenAdd, 2), NewToken("456", TokenNumber, 3)},
+		tokens: []*Token{
+			NewToken("123", TokenNumber, 1),
+			NewToken("-", TokenSub, 2),
+			NewToken("456", TokenNumber, 3),
+			//NewToken("", TokenNumber, 4),
+		},
 	}
 
-	r, err := parser.Parse(SymbolGOAL, l)
-	fmt.Println(r, err)
+	r, err := parser.Parse(SymbolGOAL, SymbolEoi, l)
+	if err != nil {
+		panic(err)
+	}
+
+	goal := r.(*Goal)
+	fmt.Println(interpreter(goal))
 }
 
 func initParser() *merak.Parser {
@@ -148,62 +178,113 @@ func initParser() *merak.Parser {
 		GOAL -> EXPR
 		EXPR -> TERM
 			  | EXPR + TERM
-			  //| EXPR - TERM
+			  | EXPR - TERM
 		TERM -> FACTOR
 			  | TERM * FACTOR
-			  //| TERM / FACTOR
+			  | TERM / FACTOR
 		FACTOR -> number
 		        | '(' EXPR ')'
 	*/
 	parser.RegProduction(SymbolFACTOR, []symbol.Symbol{SymbolNumber}, func(params ...symbol.Value) symbol.Value {
-		return &Value{
-			symbol: SymbolFACTOR,
+		number, _ := strconv.ParseInt(params[0].(*Token).Text, 10, 64)
+		return &Factor{
+			number: number,
 		}
 	})
 
 	parser.RegProduction(SymbolFACTOR, []symbol.Symbol{SymbolLp, SymbolEXPR, SymbolRp}, func(params ...symbol.Value) symbol.Value {
-		return &Value{
-			symbol: SymbolFACTOR,
+		return &Factor{
+			expr: params[1].(*Expr),
 		}
 	})
 
 	parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
-		return &Value{
-			symbol: SymbolTERM,
+		return &Term{
+			factor: params[0].(*Factor),
 		}
 	})
 
 	parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolTERM, SymbolMul, SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
-		return &Value{
-			symbol: SymbolTERM,
+		return &Term{
+			term:   params[0].(*Term),
+			factor: params[2].(*Factor),
+			isMul:  true,
 		}
 	})
 
-	// parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolTERM, SymbolDiv, SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
-	// 	return nil
-	// })
+	parser.RegProduction(SymbolTERM, []symbol.Symbol{SymbolTERM, SymbolDiv, SymbolFACTOR}, func(params ...symbol.Value) symbol.Value {
+		return &Term{
+			term:   params[0].(*Term),
+			factor: params[2].(*Factor),
+			isMul:  false,
+		}
+	})
 
 	parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolTERM}, func(params ...symbol.Value) symbol.Value {
-		return &Value{
-			symbol: SymbolEXPR,
+		return &Expr{
+			term: params[0].(*Term),
 		}
 	})
 
 	parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolEXPR, SymbolAdd, SymbolTERM}, func(params ...symbol.Value) symbol.Value {
-		return &Value{
-			symbol: SymbolEXPR,
+		return &Expr{
+			expr:  params[0].(*Expr),
+			term:  params[2].(*Term),
+			isAdd: true,
 		}
 	})
 
-	// parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolEXPR, SymbolSub, SymbolTERM}, func(params ...symbol.Value) symbol.Value {
-	// 	return nil
-	// })
+	parser.RegProduction(SymbolEXPR, []symbol.Symbol{SymbolEXPR, SymbolSub, SymbolTERM}, func(params ...symbol.Value) symbol.Value {
+		return &Expr{
+			expr:  params[0].(*Expr),
+			term:  params[2].(*Term),
+			isAdd: false,
+		}
+	})
 
 	parser.RegProduction(SymbolGOAL, []symbol.Symbol{SymbolEXPR}, func(params ...symbol.Value) symbol.Value {
-		return &Value{
-			symbol: SymbolGOAL,
+		return &Goal{
+			expr: params[0].(*Expr),
 		}
 	})
 
 	return parser
+}
+
+func interpreter(goal *Goal) int64 {
+	return evalGoal(goal)
+}
+
+func evalGoal(goal *Goal) int64 {
+	return evalExpr(goal.expr)
+}
+
+func evalExpr(expr *Expr) int64 {
+	term := evalTerm(expr.term)
+	if expr.expr != nil {
+		if expr.isAdd {
+			return evalExpr(expr.expr) + term
+		} else {
+			return evalExpr(expr.expr) - term
+		}
+	} else {
+		return term
+	}
+}
+
+func evalTerm(term *Term) int64 {
+	factor := evalFactor(term.factor)
+	if term.term != nil {
+		if term.isMul {
+			return evalTerm(term.term) * factor
+		} else {
+			return evalTerm(term.term) / factor
+		}
+	} else {
+		return factor
+	}
+}
+
+func evalFactor(factor *Factor) int64 {
+	return factor.number
 }
