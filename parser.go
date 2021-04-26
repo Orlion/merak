@@ -73,10 +73,11 @@ func (parser *Parser) buildActionTable(goal symbol.Symbol) (err error) {
 // Parse Input
 func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Value, err error) {
 	var (
-		state            int
-		action           *lr.Action
-		args             []symbol.Value
-		tokenSymbolValue symbol.Value
+		state              int
+		action             *lr.Action
+		args               []symbol.Value
+		currentSymbolValue symbol.Value
+		currentSymbol      symbol.Symbol
 	)
 
 	err = parser.buildActionTable(goal)
@@ -91,6 +92,8 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 		return
 	}
 
+	currentSymbolValue = token.ToSymbol()
+	currentSymbol = currentSymbolValue.Symbol()
 	stateStack := container.NewStack()
 	valueStack := container.NewStack()
 	symbolStack := container.NewStack()
@@ -99,7 +102,7 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 	for {
 		state = stateStack.Top().(int)
 
-		action, err = parser.at.Action(state, token.ToSymbol().Symbol())
+		action, err = parser.at.Action(state, currentSymbol)
 		if err != nil {
 			err = newSyntaxErr(token, nil)
 			break
@@ -123,17 +126,21 @@ func (parser *Parser) Parse(goal symbol.Symbol, l lexer.Lexer) (result symbol.Va
 			}
 
 			result = action.Reduce(args...)
-			symbolStack.Push(result.Symbol())
+			currentSymbol = result.Symbol()
+			symbolStack.Push(currentSymbol)
 			valueStack.Push(result)
 		case lr.ActionShift:
-			tokenSymbolValue = token.ToSymbol()
-			symbolStack.Push(tokenSymbolValue.Symbol())
-			valueStack.Push(tokenSymbolValue)
 			stateStack.Push(action.State())
-			if token, err = lexerDelegator.Next(); err != nil {
-				break
+			symbolStack.Push(currentSymbol)
+			if currentSymbol.IsTerminal() {
+				valueStack.Push(currentSymbolValue)
+				if token, err = lexerDelegator.Next(); err != nil {
+					break
+				}
 			}
 
+			currentSymbolValue = token.ToSymbol()
+			currentSymbol = currentSymbolValue.Symbol()
 		case lr.ActionAccept:
 			break
 		}

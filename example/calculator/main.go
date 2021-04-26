@@ -145,7 +145,7 @@ func main() {
 func initParser() *merak.Parser {
 	parser := merak.NewParser()
 	/*
-		GOAL -> EXPR eoi
+		GOAL -> EXPR
 		EXPR -> TERM
 			  | EXPR + TERM
 			  //| EXPR - TERM
@@ -161,7 +161,7 @@ func initParser() *merak.Parser {
 		}
 	})
 
-	parser.RegProduction(SymbolFACTOR, []symbol.Symbol{SymbolLp, SymbolNumber, SymbolRp}, func(params ...symbol.Value) symbol.Value {
+	parser.RegProduction(SymbolFACTOR, []symbol.Symbol{SymbolLp, SymbolEXPR, SymbolRp}, func(params ...symbol.Value) symbol.Value {
 		return &Value{
 			symbol: SymbolFACTOR,
 		}
@@ -199,7 +199,7 @@ func initParser() *merak.Parser {
 	// 	return nil
 	// })
 
-	parser.RegProduction(SymbolGOAL, []symbol.Symbol{SymbolEXPR, SymbolEoi}, func(params ...symbol.Value) symbol.Value {
+	parser.RegProduction(SymbolGOAL, []symbol.Symbol{SymbolEXPR}, func(params ...symbol.Value) symbol.Value {
 		return &Value{
 			symbol: SymbolGOAL,
 		}
