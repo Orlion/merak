@@ -156,10 +156,15 @@ func main() {
 
 	l := &Lexer{
 		tokens: []*Token{
-			NewToken("123", TokenNumber, 1),
+			NewToken("900", TokenNumber, 1),
 			NewToken("-", TokenSub, 2),
-			NewToken("456", TokenNumber, 3),
-			//NewToken("", TokenNumber, 4),
+			NewToken("100", TokenNumber, 3),
+			NewToken("*", TokenMul, 4),
+			NewToken("(", TokenLp, 5),
+			NewToken("3", TokenNumber, 6),
+			NewToken("+", TokenAdd, 7),
+			NewToken("3", TokenNumber, 8),
+			NewToken(")", TokenRp, 9), // 900 - 100 * ( 3 + 3 )
 		},
 	}
 
@@ -286,5 +291,9 @@ func evalTerm(term *Term) int64 {
 }
 
 func evalFactor(factor *Factor) int64 {
-	return factor.number
+	if factor.expr != nil {
+		return evalExpr(factor.expr)
+	} else {
+		return factor.number
+	}
 }

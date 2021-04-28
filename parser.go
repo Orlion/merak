@@ -16,12 +16,8 @@ var (
 	SyntaxErr = errors.New("syntax error")
 )
 
-func newSyntaxErr(unexpected, expecting lexer.Token) error {
-	if expecting == nil {
-		return fmt.Errorf("%s:%d:%d: %w: unexpected %s", unexpected.Filename(), unexpected.Line(), unexpected.Col(), SyntaxErr, unexpected.ToString())
-	} else {
-		return fmt.Errorf("%s:%d:%d: %w: unexpected %s, ecpecting %s", unexpected.Filename(), unexpected.Line(), unexpected.Col(), SyntaxErr, unexpected.ToString(), expecting.ToString())
-	}
+func newSyntaxErr(unexpected lexer.Token) error {
+	return fmt.Errorf("%s:%d:%d: %w: unexpected %s", unexpected.Filename(), unexpected.Line(), unexpected.Col(), SyntaxErr, unexpected.ToString())
 }
 
 type Parser struct {
@@ -107,7 +103,7 @@ Loop:
 		}
 		action, err = parser.at.Action(state, currentSymbol)
 		if err != nil {
-			err = newSyntaxErr(token, nil)
+			err = newSyntaxErr(token)
 			break Loop
 		}
 
